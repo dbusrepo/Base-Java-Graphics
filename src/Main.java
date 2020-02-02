@@ -19,7 +19,7 @@ public class Main {
         ArgSettings(String[] args) {
         }
 
-        boolean getUseFullScreenMode() {
+        boolean useFullScreen() {
             return !START_WINDOWED;
         }
 
@@ -34,12 +34,10 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        GraphicsApplication graphicsApplication = new GraphicsApplication();
-
         ArgSettings settings = new ArgSettings(args);
-        settings.getUseFullScreenMode();
+        settings.useFullScreen();
 
-        graphicsApplication.init(settings.getWidth(), settings.getHeight(), !settings.getUseFullScreenMode());
+        GraphicsApplication graphicsApplication = new GraphicsApplication(settings.getWidth(), settings.getHeight(), settings.useFullScreen());
         graphicsApplication.run();
 //        System.out.println("Exiting main...");
     }

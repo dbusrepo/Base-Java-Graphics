@@ -3,371 +3,478 @@ package com.busatod.java.graphics;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.awt.image.BufferStrategy;
 import java.lang.reflect.InvocationTargetException;
+import java.text.DecimalFormat;
 
 // vedere:
 // https://stackoverflow.com/questions/35516191/what-is-the-correct-way-to-use-createbufferstrategy
 
-public class GraphicsApplication extends JFrame {
+// TODO
+// Threading
+// fix fps ups
+// refactoring main..
+// logic app class
+// see reader comments about the book chapters on the book website
+// vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen in generale
 
-    private static final String TITLE = "Java Graphics";
-    private static final int NUM_BUFFERS = 3;
-    private static final boolean VSYNC = true;
-    private static final long NANO_IN_MILLI = 1000000L;
-    // num of iterations with a sleep delay of 0ms before
-    // game loop yields to other threads.
-    private static final int NUM_DELAYS_PER_YIELD = 16;
-    // max num of renderings that can be skipped in one game loop,
-    // game's internal state is updated but not rendered on screen.
-    private static int MAX_RENDER_SKIPS = 5;
-    private static boolean LOCK_FPS = false;
-    private static int TARGET_FPS = 20; // -1 if not used
+public class GraphicsApplication extends JFrame implements WindowListener {
 
-//    private GraphicsEnvironment graphicsEnvironment;
-//    private GraphicsDevice screenDevice;
+	private static final String TITLE = "Java Graphics";
 
-    private InputManager inputManager;
-    private InputAction exitAction;
-    private InputAction pauseAction;
-    private boolean isRunning;
-    private boolean isPaused;
-    // TODO gestire nuova action per il toggling del fullscreen
-    private boolean toogleFullscreenKeyPressed;
+	private static final boolean SHOW_STATISTICS = true;
 
-    private boolean isWindowed;
-    private int winWidth;
-    private int winHeight;
-    private int winXPos, winYPos;
+	private static final int NUM_BUFFERS = 3; // used for page flipping
+	private static final boolean VSYNC = true; // TODO
 
-    private long startTime;
-    private long fps;
-    private long frameCounter;
-    private long lastFpsTime;
-    private long rendersSkipped;
-    private Font fpsFont = new Font("Consolas", Font.PLAIN, 25);
+	private static final long NANO_IN_MILLI = 1000000L;
+	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
 
-    public GraphicsApplication() {
-        setTitle(TITLE);
-//        graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
-//        screenDevice = graphicsEnvironment.getDefaultScreenDevice();
-    }
+	private static long MAX_STATS_INTERVAL = NANO_IN_SEC; // in ns
+	// private static long MAX_STATS_INTERVAL = 1000L;
+	// record stats every 1 second (roughly)
 
-    // init for windowed mode
-    public void init(int width, int height, boolean startWindowed) {
-        System.out.println("Initializing the graphics display...");
-        setIgnoreRepaint(true);
-        setResizable(false);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // do we want window decorations like the title bar?
-        setUndecorated(!startWindowed);
-//            setDefaultLookAndFeelDecorated(true);
-//            setSize(windowedWidth, windowedHeight);
-        this.winWidth = width;
-        this.winHeight = height;
-        adjustWinSize();
-        setLocationRelativeTo(null);
-        setBackground(Color.BLACK);
-        setVisible(true);
+	// Number of frames with a delay of 0 ms before the animation thread yields
+	// to other running threads.
+	private static final int NUM_DELAYS_PER_YIELD = 16;
 
-        this.isWindowed = startWindowed;
-        if (!startWindowed) {
-            setExtendedState(JFrame.MAXIMIZED_BOTH);
-            getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
-        }
-//            int windowBarHeight = (int) (windowedHeight - getContentPane().getSize().getHeight());
-//            setSize(windowedWidth, windowedHeight + windowBarHeight);
-        //            setSize(windowedWidth, windowedHeight);
-        // TODO
-        createBufferStrategy();
-        // TODO crearli qui??
-        setupWindowListener();
+	// no. of frames that can be skipped in any one animation loop
+	// i.e the games state is updated but not rendered
+	private static int MAX_FRAME_SKIPS = 5;
 
-        this.inputManager = new InputManager(this);
-        createInputActions();
+	// number of FPS values stored to get an average
+	private static int NUM_FPS = 10;
 
-    }
-    private void createInputActions() {
-        exitAction = new InputAction("exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
-        pauseAction = new InputAction("pause", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
-        inputManager.mapToKey(exitAction, KeyEvent.VK_ESCAPE);
-        inputManager.mapToKey(pauseAction, KeyEvent.VK_F1);
-    }
+	private static int TARGET_FPS = 1000; // -1 if not used
 
-    private void createBufferStrategy() {
-        // avoid potential deadlock in 1.4.1_02
-        try {
-            EventQueue.invokeAndWait(new Runnable() {
-                public void run() {
-                    createBufferStrategy(NUM_BUFFERS);
-                }
-            });
-        } catch (InterruptedException ex) {
-            // ignore
-        } catch (InvocationTargetException ex) {
-            // ignore
-        }
-    }
+	//    private GraphicsEnvironment graphicsEnvironment;
+	//    private GraphicsDevice screenDevice;
 
-    private void adjustWinSize() {
-        //windowBarHeight = (int) (HEIGHT - getContentPane().getSize().getHeight());
-        //setSize(WIDTH, HEIGHT + windowBarHeight);
-        getContentPane().setPreferredSize(new Dimension(winWidth, winHeight));
-        pack();
-    }
+	private long period;  // period between drawing in _nanosecs_
 
-    public void run() {
-        System.out.println("Entering the main loop...");
-        try {
-            execLoop();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        System.out.println("Exiting...");
-        // make sure we restore the video mode before exiting
-        initFromScreen();
-    }
+	// used for gathering statistics
+	private long statsInterval = 0L;    // in ns
+	private long prevStatsTime;
+	private long totalElapsedTime = 0L;
+	private int timeSpentInGame = 0;    // in seconds
 
-    // https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
-    private void execLoop() {
-        isRunning = true;
+	private long frameCount = 0;
+	private double fpsStore[];
+	private long statsCount = 0;
+	private double averageFPS = 0.0;
 
-        // calc the frame period and print it
-        long period = 0L;  // rendering FPS (nanosecs/targetFPS)
-        if (LOCK_FPS) {
-            period = (1000L * NANO_IN_MILLI) / TARGET_FPS;
-            System.out.println("FPS: " + TARGET_FPS + ", vsync=" + VSYNC);
-            System.out.println("FPS period: " + period);
-        }
+	private long framesSkipped = 0L;
+	private long totalFramesSkipped = 0L;
+	private double upsStore[];
+	private double averageUPS = 0.0;
 
-        // Cache the buffer strategy
-        BufferStrategy bufferStrategy = getBufferStrategy();
+	private DecimalFormat df = new DecimalFormat("0.##");  // 2 dp
+	private DecimalFormat timedf = new DecimalFormat("0.####");  // 4 dp
 
-        rendersSkipped = 0L;
-        startTime = System.nanoTime();
+	private Font font;
+	private FontMetrics metrics;
 
-        // local variables loop initialization
-        long overSleepTime = 0L;
-        int numDelays = 0;
-        long excess = 0L;
-        long beforeTime = startTime;
+	private boolean isWindowed;
+	private final Dimension winDimension;
 
-        // Main loop
-        while (isRunning) {
-            // **2) execute physics
-            if (toogleFullscreenKeyPressed) {
-                toggleFullscreen();
-                toogleFullscreenKeyPressed = false;
-            }
+	private InputManager inputManager;
+	private InputAction exitAction;
+	private InputAction pauseAction;
+	private InputAction toggleFullscreenAction;
 
-            update(0);
+	private boolean isRunning = false;
+	private boolean gameOver = false;
+	private boolean isPaused = false;
 
-            Graphics graphics = bufferStrategy.getDrawGraphics();
-            render(graphics);
-            graphics.dispose();
+	private long gameStartTime;
+	private long lastFpsTime;
 
-            if (VSYNC) {
-                Toolkit.getDefaultToolkit().sync();
-            }
+	// init for windowed mode
+	public GraphicsApplication(int width, int height, boolean isFullScreen) {
+		System.out.println("Initializing the graphics application...");
+		//        graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		//        screenDevice = graphicsEnvironment.getDefaultScreenDevice();
+		this.winDimension = new Dimension(width, height);
+		this.isWindowed = !isFullScreen;
 
-            // Flip the buffer
-            if (!bufferStrategy.contentsLost()) {
-                bufferStrategy.show();
-            }
+//      setDefaultLookAndFeelDecorated(true);
+//      setSize(windowedWidth, windowedHeight);
+		setUndecorated(isFullScreen); // do we want window decorations like the title bar?
+		setIgnoreRepaint(true);
+		setTitle(TITLE);
+		setBackground(Color.BLACK);
+		adjustWinSize();
+		if (isFullScreen) {
+			setExtendedState(JFrame.MAXIMIZED_BOTH);
+			getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
+		}
+		setResizable(false);
+		setVisible(true);
+		setLocationRelativeTo(null); // called after setVisible(true); to center the window
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            long afterTime = System.nanoTime();
-            calculateFramesPerSecond(afterTime);
-            if (!LOCK_FPS) {
-                continue;
-            }
+		createBufferStrategy(); // TODO ma serve?
 
-            long timeDiff = afterTime - beforeTime;
-            long sleepTime = (period - timeDiff) - overSleepTime;
-            if (sleepTime > 0) { // time left in cycle
-                //System.out.println("sleepTime: " + (sleepTime/NANO_IN_MILLI));
-                try {
-                    Thread.sleep(sleepTime / NANO_IN_MILLI);//nano->ms
-                } catch (InterruptedException ex) {
-                }
-                overSleepTime = (System.nanoTime() - afterTime) - sleepTime;
-            } else { // sleepTime <= 0
-                System.out.println("Rendering too slow");
-                // this cycle took longer than period
-                excess -= sleepTime;
-                // store excess time value
-                overSleepTime = 0L;
-                if (++numDelays >= NUM_DELAYS_PER_YIELD) {
-                    Thread.yield();
-                    // give another thread a chance to run
-                    numDelays = 0;
-                }
-            }
+		this.inputManager = new InputManager(this);
+		createInputActions();
+		setFocusable(true);
+		requestFocus();
+		requestFocusInWindow();
 
-            beforeTime = System.nanoTime();
+		// set up message font
+		font = new Font("SansSerif", Font.BOLD, 24);
+		metrics = this.getFontMetrics(font);
 
-            /* If the rendering is taking too long, then
-                  update the game state without rendering
-                  it, to get the UPS nearer to the
-                  required frame rate. */
-            int skips = 0;
-            while ((excess > period) && (skips < MAX_RENDER_SKIPS)) {
-                // update state but don’t render
-                System.out.println("Skip renderFPS, run updateFPS");
-                excess -= period;
-                update(0); // period as elapsedTime?
-                skips++;
-            }
-            rendersSkipped += skips;
-        }
+		// initialise timing elements
+		fpsStore = new double[NUM_FPS];
+		upsStore = new double[NUM_FPS];
+		for (int i = 0; i < NUM_FPS; i++) {
+			fpsStore[i] = 0.0;
+			upsStore[i] = 0.0;
+		}
 
-    }
+		// calc the frame period and print it
+		period = 0L;  // rendering FPS (nanosecs/targetFPS) // da mettere tra i settings?
+		period = NANO_IN_SEC / TARGET_FPS; // in ns
+		System.out.println("FPS: " + TARGET_FPS + ", vsync=" + VSYNC);
+		System.out.println("FPS period: " + period);
 
-    private void calculateFramesPerSecond(long curRenderTime) {
-        if (curRenderTime - lastFpsTime >= NANO_IN_MILLI * 1000) {
-            fps = frameCounter;
-            frameCounter = 0;
-            lastFpsTime = curRenderTime;
-        }
-        frameCounter++;
-    }
+		// create app/game components
+	}
 
-    private void update(long elapsedTime) {
-        // check input that can happen whether paused or not
-        checkSystemInput();
-        if (!isPaused) {
-            // TODO check app input
-            updateWorld(elapsedTime);
-        }
-    }
+	// going to fullscreen:
+	// https://stackoverflow.com/questions/13064607/fullscreen-swing-components-fail-to-receive-keyboard-input-on-java-7-on-mac-os-x
+	// https://stackoverflow.com/questions/19645243/keylistener-doesnt-work-after-dispose
+	private void toggleFullscreen() {
+		setVisible(false);
+		dispose();
+		setUndecorated(isWindowed);
+		if (isWindowed) {
+			setExtendedState(JFrame.MAXIMIZED_BOTH);
+			getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
+		} else {
+			setExtendedState(JFrame.NORMAL);
+			getGraphicsConfiguration().getDevice().setFullScreenWindow(null);
+		}
+		isWindowed = !isWindowed;
+		adjustWinSize();
+		setVisible(true);
+	}
 
-    private void checkSystemInput() {
-        if (pauseAction.isPressed()) {
-            isPaused = !isPaused;
-        }
-        if (exitAction.isPressed()) {
-            stop();
-        }
-    }
+	private void adjustWinSize() {
+		//windowBarHeight = (int) (HEIGHT or getHeight() ? - getContentPane().getSize().getHeight());
+		//setSize(WIDTH, HEIGHT + windowBarHeight);
+		getContentPane().setPreferredSize(winDimension);
+		pack();
+	}
 
-    private void updateWorld(long l) {
-    }
+	private void createInputActions() {
+		exitAction = new InputAction("Exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		pauseAction = new InputAction("Pause", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		toggleFullscreenAction = new InputAction("Toogle Fullscreen", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		inputManager.mapToKey(exitAction, KeyEvent.VK_ESCAPE);
+		inputManager.mapToKey(pauseAction, KeyEvent.VK_P);
+		inputManager.mapToKey(toggleFullscreenAction, KeyEvent.VK_F1);
+	}
 
-    private void render(Graphics g) {
-        g.setColor(Color.BLACK);
-        g.fillRect(0, 0, getWidth(), getHeight());
-        g.setFont(fpsFont);
-        g.setColor(Color.YELLOW);
-        if (g instanceof Graphics2D) {
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        }
-        g.drawString("FPS: " + fps, 10, 60);
-    }
+	private void createBufferStrategy() {
+		// avoid potential deadlock in 1.4.1_02
+		try {
+			EventQueue.invokeAndWait(new Runnable() {
+				public void run() {
+					createBufferStrategy(NUM_BUFFERS);
+				}
+			});
+		} catch (InterruptedException ex) {
+			// ignore
+		} catch (InvocationTargetException ex) {
+			// ignore
+		}
+	}
 
-    /**
-     * Remove the window from the screen, if we are in full screen
-     * mode then we need to reset the video mode.
-     */
-    // TODO
-    public void initFromScreen() {
-        if (!this.isWindowed) {
-            getGraphicsConfiguration().getDevice().setFullScreenWindow(null);
-        }
-        setVisible(false); //you can't see me!
-        dispose(); //Destroy the JFrame object
-    }
+	// TODO introdurre thread...
+	public void run() {
+		System.out.println("Entering the main loop...");
+		try {
+			execLoop();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		printStats();
+		System.out.println("Exiting...");
+		// make sure we restore the video mode before exiting
+		initFromScreen();
+	}
 
-//    /**
-//     * Exit the program if the escape key is typed
-//     */
-//    private void keyPressedHandler(KeyEvent evt) {
-//        if (evt.getKeyCode() == KeyEvent.VK_ESCAPE) {
-//            stop();
-//        }
-//        if (evt.getKeyCode() == KeyEvent.VK_F1) {
-//            toogleFullscreenKeyPressed = true;
-//        }
-//    }
+	private void printStats() {
+		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
+		System.out.println("Average FPS: " + df.format(averageFPS));
+		System.out.println("Average UPS: " + df.format(averageUPS));
+		System.out.println("Time Spent: " + timeSpentInGame + " secs");
+		// TODO invoke app logic print stats
+	}
 
-    /**
-     * Signals the main loop that it's time to quit
-     */
-    private void stop() {
-        isRunning = false;
-    }
+	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
+	private void execLoop() {
 
-    public void toggleFullscreen() {
-        setVisible(false);
-        dispose();
-        if (isWindowed) {
-            winXPos = getX();
-            winYPos = getY();
-            setExtendedState(JFrame.MAXIMIZED_BOTH);
-            setUndecorated(true);
-            getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
-        } else {
-            setExtendedState(JFrame.NORMAL);
-            setUndecorated(false);
-            getGraphicsConfiguration().getDevice().setFullScreenWindow(null);
-            setLocation(winXPos, winYPos);
-        }
-        adjustWinSize();
-        isWindowed = !isWindowed;
-        setVisible(true);
-    }
+		long beforeTime, afterTime, timeDiff, sleepTime; // in ns
+		long overSleepTime = 0L;
+		int numDelays = 0;
+		long excess = 0L;
 
-    /**
-     * We may need to handle different window events
-     * so we set up a window listener for this Frame.
-     */
-    private void setupWindowListener() {
-        addWindowListener(new java.awt.event.WindowAdapter() {
-            public void windowClosing(java.awt.event.WindowEvent evt) {
-                exitForm(evt);
-            }
-            public void windowIconified(java.awt.event.WindowEvent evt) {
-                formWindowIconified(evt);
-            }
-            public void windowDeiconified(java.awt.event.WindowEvent evt) {
-                formWindowDeiconified(evt);
-            }
-            public void windowActivated(java.awt.event.WindowEvent evt) {
-                formWindowActivated(evt);
-            }
-            public void windowDeactivated(java.awt.event.WindowEvent evt) {
-                formWindowDeactivated(evt);
-            }
-        });
-    }
+		gameStartTime = System.nanoTime();
+		beforeTime = gameStartTime;
 
-    /**
-     * Handle any special processing needed if the window is activated.
-     */
-    protected void formWindowActivated(java.awt.event.WindowEvent evt) {
-    }
+		// Cache the buffer strategy
+		BufferStrategy bufferStrategy = getBufferStrategy();
 
-    /**
-     * Handle any special processing needed if the window is deactivated.
-     */
-    protected void formWindowDeactivated(java.awt.event.WindowEvent evt) {
-    }
+		isRunning = true;
+		// Main loop
+		while (isRunning) {
+			// update
+			update(0);
+			// rendering
 
-    /**
-     * Handle any special processing needed if the window is deiconified.
-     */
-    protected void formWindowDeiconified(java.awt.event.WindowEvent evt) {
-    }
+			//painting
+			Graphics graphics = bufferStrategy.getDrawGraphics();
+			// see user comments here https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
+			render(graphics);
+			graphics.dispose();
+			if (VSYNC) {
+				Toolkit.getDefaultToolkit().sync();
+			}
 
-    /**
-     * Handle any special processing needed if the window is iconified.
-     */
-    protected void formWindowIconified(java.awt.event.WindowEvent evt) {
-    }
+			// Flip the buffer
+			if (!bufferStrategy.contentsLost()) {
+				bufferStrategy.show();
+			}
 
-    /**
-     * Handle any special processing needed if the window is closed.
-     */
-    protected void exitForm(java.awt.event.WindowEvent evt) {
-        exitAction.press();
-    }
+			afterTime = System.nanoTime();
+			timeDiff = afterTime - beforeTime;
+			sleepTime = (period - timeDiff) - overSleepTime; // ns
+
+			if (sleepTime > 0) { // time left in cycle
+				//System.out.println("sleepTime: " + (sleepTime/NANO_IN_MILLI));
+				try {
+					Thread.sleep(sleepTime / NANO_IN_MILLI);//nano->ms
+				} catch (InterruptedException ex) { }
+				overSleepTime = (System.nanoTime() - afterTime) - sleepTime;
+			} else { // sleepTime <= 0; the frame took longer than the period
+//				System.out.println("Rendering too slow"); // TODO if stats?
+				excess -= sleepTime;
+				overSleepTime = 0L; // store excess time value
+				if (++numDelays >= NUM_DELAYS_PER_YIELD) {
+					Thread.yield(); // give another thread a chance to run
+					numDelays = 0;
+				}
+			}
+
+			beforeTime = System.nanoTime();
+
+            /* If frame animation is taking too long, update the game state
+             without rendering it, to get the updates/sec nearer to
+             the required FPS. */
+			int skips = 0;
+			while ((excess > period) && (skips < MAX_FRAME_SKIPS)) {
+				// update state but don’t render
+//				System.out.println("Skip renderFPS, run updateFPS"); // TODO if stats?
+				excess -= period;
+				update(0); // period as elapsedTime?
+				skips++;
+			}
+			framesSkipped += skips;
+			storeStats();
+		}
+
+	}
+
+	/* The statistics:
+     - the summed periods for all the iterations in this interval
+       (period is the amount of time a single frame iteration should take),
+       the actual elapsed time in this interval,
+       the error between these two numbers;
+
+     - the total frame count, which is the total number of calls to run();
+
+     - the frames skipped in this interval, the total number of frames
+       skipped. A frame skip is a game update without a corresponding render;
+
+     - the FPS (frames/sec) and UPS (updates/sec) for this interval,
+       the average FPS & UPS over the last NUM_FPSs intervals.
+
+    The data is collected every MAX_STATS_INTERVAL  (1 sec).
+    */
+	// TODO Fix!!
+	private void storeStats() {
+		frameCount++; // TODO ma..non va in overflow?? vedi metodo precedente sotto che riparte ogni sec
+		statsInterval += period;
+		if (statsInterval >= MAX_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
+			long timeNow = System.nanoTime();
+			timeSpentInGame = (int) ((timeNow - gameStartTime) / NANO_IN_SEC);  // ns --> secs
+
+			long realElapsedTime = timeNow - prevStatsTime;   // time since last stats collection
+			totalElapsedTime += realElapsedTime;
+
+			double timingError = ((double) (realElapsedTime - statsInterval) / statsInterval) * 100.0;
+
+			totalFramesSkipped += framesSkipped;
+
+			double actualFPS = 0.0;     // calculate the latest FPS and UPS
+			double actualUPS = 0.0;
+			if (totalElapsedTime > 0) {
+				actualFPS = (((double) frameCount / totalElapsedTime) * NANO_IN_SEC);
+				actualUPS = (((double) (frameCount + totalFramesSkipped) / totalElapsedTime) * NANO_IN_SEC);
+			}
+
+			// store the latest FPS and UPS
+			fpsStore[(int) statsCount % NUM_FPS] = actualFPS;
+			upsStore[(int) statsCount % NUM_FPS] = actualUPS;
+			statsCount++;
+
+			double totalFPS = 0.0;     // total the stored FPSs and UPSs
+			double totalUPS = 0.0;
+			for (int i = 0; i < NUM_FPS; i++) {
+				totalFPS += fpsStore[i];
+				totalUPS += upsStore[i];
+			}
+
+			if (statsCount < NUM_FPS) { // obtain the average FPS and UPS
+				averageFPS = totalFPS / statsCount;
+				averageUPS = totalUPS / statsCount;
+			} else {
+				averageFPS = totalFPS / NUM_FPS;
+				averageUPS = totalUPS / NUM_FPS;
+			}
+
+//			System.out.println(timedf.format((double) statsInterval / NANO_IN_SEC) + " " +
+//					timedf.format((double) realElapsedTime / NANO_IN_SEC) + "s " +
+//					df.format(timingError) + "% " +
+//					frameCount + "c " +
+//					framesSkipped + "/" + totalFramesSkipped + " skip; " +
+//					df.format(actualFPS) + " " + df.format(averageFPS) + " afps; " +
+//					df.format(actualUPS) + " " + df.format(averageUPS) + " aups");
+
+			framesSkipped = 0;
+			prevStatsTime = timeNow;
+			statsInterval = 0L;   // reset
+		}
+	}
+
+	// prev methods
+//	private void calculateFramesPerSecond(long curRenderTime) {
+//		if (curRenderTime - lastFpsTime >= NANO_IN_MILLI * 1000) {
+//			fps = frameCounter;
+//			frameCounter = 0;
+//			lastFpsTime = curRenderTime;
+//		}
+//		frameCounter++;
+//	}
+
+	private void update(long elapsedTime) {
+//        System.out.flush();
+//        System.err.flush();
+		// check input that can happen whether paused or not
+		checkSystemInput();
+		if (!isPaused && !gameOver) {
+			// TODO check app input
+			updateWorld(elapsedTime);
+		}
+	}
+
+	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
+	private void checkSystemInput() {
+		if (pauseAction.isPressed()) {
+			isPaused = !isPaused;
+		}
+		if (exitAction.isPressed()) {
+			stopApp();
+		}
+		if (toggleFullscreenAction.isPressed()) {
+			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
+			toggleFullscreen();
+		}
+		// ...
+	}
+
+	private void updateWorld(long l) {
+		// ...
+	}
+
+	private void render(Graphics g) {
+		g.setColor(Color.BLACK);
+		g.fillRect(0, 0, getWidth(), getHeight());
+		g.setFont(font);
+		g.setColor(Color.YELLOW);
+		if (g instanceof Graphics2D) {
+			Graphics2D g2 = (Graphics2D) g;
+			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			//.getFontRenderContext()
+		}
+		int winBarHeight = getHeight() - getContentPane().getHeight();
+//		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
+		String statsStr = "Average FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
+		g.drawString(statsStr, 5, winBarHeight + metrics.getHeight());  // was (10,55)
+//        String str = "FPS: " + fps;
+//        int winBarHeight = getHeight() - getContentPane().getHeight();
+//        g.drawString(str, 2, winBarHeight + g.getFontMetrics().getHeight());
+	}
+
+	/**
+	 * Remove the window from the screen, if we are in full screen
+	 * mode then we need to reset the video mode.
+	 */
+	// TODO vedi finishOff in WormChase.java fullscreen libro
+	public void initFromScreen() {
+		if (!this.isWindowed) {
+			getGraphicsConfiguration().getDevice().setFullScreenWindow(null);
+		}
+		setVisible(false); //you can't see me!
+		dispose(); //Destroy the JFrame object
+	}
+
+	// called when the JFrame is activated / deiconified
+	public void resumeApp() { isPaused = false; }
+
+	// called when the JFrame is deactivated / iconified
+	public void pauseApp() { isPaused = true; }
+
+	// called when the JFrame is closing
+	public void stopApp() { isRunning = false; }
+
+	/**
+	 * We may need to handle different window events
+	 */
+	@Override
+	public void windowClosing(java.awt.event.WindowEvent evt) {
+		stopApp();
+	}
+
+	@Override
+	public void windowIconified(java.awt.event.WindowEvent evt) {
+		pauseApp();
+	}
+
+	@Override
+	public void windowDeiconified(java.awt.event.WindowEvent evt) {
+		resumeApp();
+	}
+
+	@Override
+	public void windowActivated(java.awt.event.WindowEvent evt) {
+		resumeApp();
+	}
+
+	@Override
+	public void windowDeactivated(java.awt.event.WindowEvent evt) {
+		pauseApp();
+	}
+
+	@Override
+	public void windowOpened(WindowEvent e) {}
+
+	@Override
+	public void windowClosed(WindowEvent e) {}
+
 }

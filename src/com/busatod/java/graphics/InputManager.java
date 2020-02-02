@@ -82,11 +82,6 @@ public class InputManager implements KeyListener {
         return list;
     }
 
-    private InputAction getKeyAction(KeyEvent e) {
-        int keyCode = e.getKeyCode();
-        return (keyCode < keyActions.length) ? keyActions[keyCode] : null;
-    }
-
     /**
      * Gets the name of a key code.
      */
@@ -98,12 +93,14 @@ public class InputManager implements KeyListener {
     @Override
     public void keyTyped(KeyEvent e) {
         // make sure the key isn't processed for anything else
+        // https://stackoverflow.com/questions/17797231/keypressed-and-keytyped-confusion
         e.consume();
     }
 
     // from the KeyListener interface
     @Override
     public void keyPressed(KeyEvent e) {
+        System.out.println(e.getKeyCode() + " pressed");
         InputAction gameAction = getKeyAction(e);
         if (gameAction != null) {
             gameAction.press();
@@ -115,11 +112,17 @@ public class InputManager implements KeyListener {
     // from the KeyListener interface
     @Override
     public void keyReleased(KeyEvent e) {
+        System.out.println(e.getKeyCode() + " released");
         InputAction gameAction = getKeyAction(e);
         if (gameAction != null) {
             gameAction.release();
         }
         // make sure the key isn't processed for anything else
         e.consume();
+    }
+
+    private InputAction getKeyAction(KeyEvent e) {
+        int keyCode = e.getKeyCode();
+        return (keyCode < keyActions.length) ? keyActions[keyCode] : null;
     }
 }
