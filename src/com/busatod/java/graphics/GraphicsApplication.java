@@ -47,7 +47,7 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 	// number of FPS values stored to get an average
 	private static int NUM_FPS = 10;
 
-	private static int TARGET_FPS = 1000; // -1 if not used
+	private static int TARGET_FPS = 60; // -1 if not used
 
 	//    private GraphicsEnvironment graphicsEnvironment;
 	//    private GraphicsDevice screenDevice;
@@ -58,7 +58,7 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 	private long statsInterval = 0L;    // in ns
 	private long prevStatsTime;
 	private long totalElapsedTime = 0L;
-	private int timeSpentInGame = 0;    // in seconds
+	private long timeSpentInGame = 0;    // in seconds
 
 	private long frameCount = 0;
 	private double fpsStore[];
@@ -219,18 +219,21 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
 	private void execLoop() {
 
-		long beforeTime, afterTime, timeDiff, sleepTime; // in ns
+		// times are in ns
+		long beforeTime, afterTime, timeDiff, sleepTime;
 		long overSleepTime = 0L;
 		int numDelays = 0;
 		long excess = 0L;
 
 		gameStartTime = System.nanoTime();
+		prevStatsTime = gameStartTime;
 		beforeTime = gameStartTime;
 
 		// Cache the buffer strategy
 		BufferStrategy bufferStrategy = getBufferStrategy();
 
 		isRunning = true;
+
 		// Main loop
 		while (isRunning) {
 			// update
@@ -308,11 +311,11 @@ public class GraphicsApplication extends JFrame implements WindowListener {
     */
 	// TODO Fix!!
 	private void storeStats() {
-		frameCount++; // TODO ma..non va in overflow?? vedi metodo precedente sotto che riparte ogni sec
+		frameCount++;
 		statsInterval += period;
 		if (statsInterval >= MAX_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
 			long timeNow = System.nanoTime();
-			timeSpentInGame = (int) ((timeNow - gameStartTime) / NANO_IN_SEC);  // ns --> secs
+			timeSpentInGame = (timeNow - gameStartTime) / NANO_IN_SEC;  // ns --> secs
 
 			long realElapsedTime = timeNow - prevStatsTime;   // time since last stats collection
 			totalElapsedTime += realElapsedTime;
