@@ -14,11 +14,12 @@ import java.text.DecimalFormat;
 
 // TODO
 // Threading
-// fix fps ups
 // refactoring main..
 // logic app class
 // see reader comments about the book chapters on the book website
 // vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen in generale
+
+// TODO remove 'game'
 
 public class GraphicsApplication extends JFrame implements WindowListener, Runnable {
 
@@ -42,7 +43,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private static final int NUM_DELAYS_PER_YIELD = 16;
 
 	// no. of frames that can be skipped in any one animation loop
-	// i.e the games state is updated but not rendered
+	// i.e the state is updated but not rendered
 	private static int MAX_FRAME_SKIPS = 5;
 
 	// number of FPS values stored to get an average
@@ -58,7 +59,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	protected Thread renderThread = null;
 
 	private volatile boolean isRunning = false;
-	private boolean gameOver = false;
+	private boolean appOver = false;
 	private boolean isPaused = false;
 	private boolean finishedOff = false;
 
@@ -86,8 +87,9 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private Font font;
 	private FontMetrics metrics;
 
-	private boolean isWindowed;
-	private final Dimension winDimension;
+	private boolean useFullScreen;
+	//	private final Dimension winDimension;
+	private int width, height;     // frame dimensions
 
 	private InputManager inputManager;
 	private InputAction exitAction;
@@ -97,24 +99,37 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private long gameStartTime;
 	private long lastFpsTime;
 
+	// used for full-screen exclusive mode
+	private GraphicsDevice gd;
+	private Graphics gScr;
+	private BufferStrategy bufferStrategy;
+
 	// init for windowed mode
-	public GraphicsApplication(int width, int height, boolean isFullScreen) {
+	public GraphicsApplication(int width, int height, boolean useFullScreen) {
 		System.out.println("Initializing the graphics application...");
 		//        graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		//        screenDevice = graphicsEnvironment.getDefaultScreenDevice();
-		this.winDimension = new Dimension(width, height);
-		this.isWindowed = !isFullScreen;
+//		this.winDimension = new Dimension(width, height);
+		this.width = width;
+		this.height = height;
+		this.useFullScreen = useFullScreen;
 
 //      setDefaultLookAndFeelDecorated(true);
 //      setSize(windowedWidth, windowedHeight);
-		setUndecorated(isFullScreen); // do we want window decorations like the title bar?
-		setIgnoreRepaint(true);
+		setUndecorated(useFullScreen); // no menu bar, borders, etc. or Swing components
+		setIgnoreRepaint(true); // turn off all paint events since doing active rendering
 		setTitle(TITLE);
 		setBackground(Color.BLACK);
 		adjustWinSize();
-		if (isFullScreen) {
-			setExtendedState(JFrame.MAXIMIZED_BOTH);
-			getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
+		if (useFullScreen) {
+			initFullScreen();
+//			if (!GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().isFullScreenSupported()) {
+////			if (!getGraphicsConfiguration().getDevice().isFullScreenSupported()) {
+//				System.out.println("Full-screen mode not supported");
+//				System.exit(0);
+//			}
+//			setExtendedState(JFrame.MAXIMIZED_BOTH);
+//			getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
 		}
 		setResizable(false);
 		setVisible(true);
@@ -158,6 +173,39 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		start();
 	}
 
+	private void initFullScreen() {
+		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		gd = ge.getDefaultScreenDevice();
+
+		if (!gd.isFullScreenSupported()) {
+			System.out.println("Full-screen exclusive mode not supported");
+			System.exit(0);
+		}
+		gd.setFullScreenWindow(this); // switch on full-screen exclusive mode
+
+		// we can now adjust the display modes, if we wish
+		showCurrentMode();
+
+		// setDisplayMode(800, 600, 8);   // or try 8 bits
+		// setDisplayMode(1280, 1024, 32);
+
+		// reportCapabilities();
+
+//		pWidth = getBounds().width;
+//		pHeight = getBounds().height;
+//
+//		setBufferStrategy();
+	}  // end of initFullScreen()
+
+	private void showCurrentMode()
+	// print the display mode details for the graphics device
+	{
+		DisplayMode dm = gd.getDisplayMode();
+		System.out.println("Current Display Mode: (" +
+				dm.getWidth() + "," + dm.getHeight() + "," +
+				dm.getBitDepth() + "," + dm.getRefreshRate() + ")  ");
+	}
+
 	protected class ShutDownThread extends Thread {
 		@Override
 		public void run() {
@@ -183,17 +231,17 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	// https://stackoverflow.com/questions/13064607/fullscreen-swing-components-fail-to-receive-keyboard-input-on-java-7-on-mac-os-x
 	// https://stackoverflow.com/questions/19645243/keylistener-doesnt-work-after-dispose
 	private void toggleFullscreen() {
+		useFullScreen = !useFullScreen;
 		setVisible(false);
 		dispose();
-		setUndecorated(isWindowed);
-		if (isWindowed) {
+		setUndecorated(useFullScreen);
+		if (useFullScreen) {
 			setExtendedState(JFrame.MAXIMIZED_BOTH);
 			getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
 		} else {
 			setExtendedState(JFrame.NORMAL);
 			getGraphicsConfiguration().getDevice().setFullScreenWindow(null);
 		}
-		isWindowed = !isWindowed;
 		adjustWinSize();
 		setVisible(true);
 	}
@@ -201,7 +249,8 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private void adjustWinSize() {
 		//windowBarHeight = (int) (HEIGHT or getHeight() ? - getContentPane().getSize().getHeight());
 		//setSize(WIDTH, HEIGHT + windowBarHeight);
-		getContentPane().setPreferredSize(winDimension);
+//		getContentPane().setSize(width, height); // https://stackoverflow.com/questions/1783793/java-difference-between-the-setpreferredsize-and-setsize-methods-in-compone
+		getContentPane().setPreferredSize(new Dimension(width, height));
 		pack();
 	}
 
@@ -251,8 +300,10 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		// Main loop
 		while (isRunning) {
 			// update
-			update(0);
+			update(0); // TODO fix/change arg 0?
+
 			// rendering
+			// Note: render only if (!isPaused && !gameOver)// see section Inefficient Pausing in https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
 
 			//painting
 			Graphics graphics = bufferStrategy.getDrawGraphics();
@@ -267,6 +318,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 			if (!bufferStrategy.contentsLost()) {
 				bufferStrategy.show();
 			}
+			// end painting
 
 			afterTime = System.nanoTime();
 			timeDiff = afterTime - beforeTime;
@@ -276,6 +328,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 				//System.out.println("sleepTime: " + (sleepTime/NANO_IN_MILLI));
 				try {
 					Thread.sleep(sleepTime / NANO_IN_MILLI);//nano->ms
+					numDelays = 0;   // reset noDelays when sleep occurs // see section Sleep is like Yield in https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
 				} catch (InterruptedException ex) { }
 				overSleepTime = (System.nanoTime() - afterTime) - sleepTime;
 			} else { // sleepTime <= 0; the frame took longer than the period
@@ -309,14 +362,18 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	}
 
 	private void update(long elapsedTime) {
-//        System.out.flush();
-//        System.err.flush();
-		// check input that can happen whether paused or not
-		checkSystemInput();
-		if (!isPaused && !gameOver) {
-			// TODO check app input
-			updateWorld(elapsedTime);
+		checkSystemInput(); // check input that can happen whether paused or not
+		if (canUpdateState()) {
+			updateState(elapsedTime);
 		}
+	}
+
+	private boolean canUpdateState() {
+		return !isPaused && !appOver;
+	}
+
+	// TODO APP_HOOK update logic
+	protected void updateState(long elapsedTime) {
 	}
 
 	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
@@ -331,10 +388,6 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
 			toggleFullscreen();
 		}
-		// ...
-	}
-
-	private void updateWorld(long l) {
 		// ...
 	}
 
@@ -466,6 +519,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		System.out.println("Time Spent: " + timeSpentInGame + " secs");
 		// TODO invoke app logic print stats?? APP_HOOK
 		System.out.flush();
+//		System.err.flush();
 	}
 
 	// called when the JFrame is activated / deiconified
