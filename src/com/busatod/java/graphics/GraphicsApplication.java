@@ -20,21 +20,22 @@ import java.text.DecimalFormat;
 // see reader comments about the book chapters on the book website
 // vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen in generale
 
-public class GraphicsApplication extends JFrame implements WindowListener {
+public class GraphicsApplication extends JFrame implements WindowListener, Runnable {
 
 	private static final String TITLE = "Java Graphics";
 
-	private static final boolean SHOW_STATISTICS = true;
+	private static final boolean SHOW_STATISTICS = true; // TODO move to settings?
 
 	private static final int NUM_BUFFERS = 3; // used for page flipping
 	private static final boolean VSYNC = true; // TODO
 
 	private static final long NANO_IN_MILLI = 1000000L;
 	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
+	public static final int FONT_SIZE = 22;
 
 	private static long MAX_STATS_INTERVAL = NANO_IN_SEC; // in ns
 	// private static long MAX_STATS_INTERVAL = 1000L;
-	// record stats every 1 second (roughly)
+	// record stats every 1 second (roughly)X
 
 	// Number of frames with a delay of 0 ms before the animation thread yields
 	// to other running threads.
@@ -47,18 +48,27 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 	// number of FPS values stored to get an average
 	private static int NUM_FPS = 10;
 
-	private static int TARGET_FPS = 60; // -1 if not used
+	private static int TARGET_FPS = 60; // -1 if not used // TODO ?? move to settings params...
+
+	/******************************************************************************************************************/
 
 	//    private GraphicsEnvironment graphicsEnvironment;
 	//    private GraphicsDevice screenDevice;
 
+	protected Thread renderThread = null;
+
+	private volatile boolean isRunning = false;
+	private boolean gameOver = false;
+	private boolean isPaused = false;
+	private boolean finishedOff = false;
+
 	private long period;  // period between drawing in _nanosecs_
 
 	// used for gathering statistics
-	private long statsInterval = 0L;    // in ns
+	private long statsInterval = 0L; // in ns
 	private long prevStatsTime;
 	private long totalElapsedTime = 0L;
-	private long timeSpentInGame = 0;    // in seconds
+	private long timeSpentInGame = 0; // in seconds
 
 	private long frameCount = 0;
 	private double fpsStore[];
@@ -83,10 +93,6 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 	private InputAction exitAction;
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
-
-	private boolean isRunning = false;
-	private boolean gameOver = false;
-	private boolean isPaused = false;
 
 	private long gameStartTime;
 	private long lastFpsTime;
@@ -117,14 +123,15 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 
 		createBufferStrategy(); // TODO ma serve?
 
-		this.inputManager = new InputManager(this);
-		createInputActions();
+		initInputManager();
+
+		addWindowListener(this);
 		setFocusable(true);
 		requestFocus();
 		requestFocusInWindow();
 
 		// set up message font
-		font = new Font("SansSerif", Font.BOLD, 24);
+		font = new Font("SansSerif", Font.BOLD, FONT_SIZE);
 		metrics = this.getFontMetrics(font);
 
 		// initialise timing elements
@@ -142,6 +149,34 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 		System.out.println("FPS period: " + period);
 
 		// create app/game components
+		// TODO APP_HOOK
+
+		// for shutdown tasks, a shutdown may not only come from the program
+		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
+
+		// start the app
+		start();
+	}
+
+	protected class ShutDownThread extends Thread {
+		@Override
+		public void run() {
+//			super.run();
+			isRunning = false;
+			finishOff();
+		}
+	}
+
+	// TODO APP_HOOK
+	protected Thread buildShutdownThread() {
+		return new ShutDownThread();
+	}
+
+	private void start() {
+		if (renderThread == null || !isRunning) {
+			renderThread = new Thread(this);
+			renderThread.start();
+		}
 	}
 
 	// going to fullscreen:
@@ -170,7 +205,8 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 		pack();
 	}
 
-	private void createInputActions() {
+	private void initInputManager() {
+		this.inputManager = new InputManager(this);
 		exitAction = new InputAction("Exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		pauseAction = new InputAction("Pause", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		toggleFullscreenAction = new InputAction("Toogle Fullscreen", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
@@ -194,30 +230,8 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 		}
 	}
 
-	// TODO introdurre thread...
-	public void run() {
-		System.out.println("Entering the main loop...");
-		try {
-			execLoop();
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-		printStats();
-		System.out.println("Exiting...");
-		// make sure we restore the video mode before exiting
-		initFromScreen();
-	}
-
-	private void printStats() {
-		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
-		System.out.println("Average FPS: " + df.format(averageFPS));
-		System.out.println("Average UPS: " + df.format(averageUPS));
-		System.out.println("Time Spent: " + timeSpentInGame + " secs");
-		// TODO invoke app logic print stats
-	}
-
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
-	private void execLoop() {
+	public void run() {
 
 		// times are in ns
 		long beforeTime, afterTime, timeDiff, sleepTime;
@@ -288,9 +302,90 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 				skips++;
 			}
 			framesSkipped += skips;
+
 			storeStats();
 		}
+		finishOff();
+	}
 
+	private void update(long elapsedTime) {
+//        System.out.flush();
+//        System.err.flush();
+		// check input that can happen whether paused or not
+		checkSystemInput();
+		if (!isPaused && !gameOver) {
+			// TODO check app input
+			updateWorld(elapsedTime);
+		}
+	}
+
+	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
+	private void checkSystemInput() {
+		if (pauseAction.isPressed()) {
+			isPaused = !isPaused;
+		}
+		if (exitAction.isPressed()) {
+			stopApp();
+		}
+		if (toggleFullscreenAction.isPressed()) {
+			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
+			toggleFullscreen();
+		}
+		// ...
+	}
+
+	private void updateWorld(long l) {
+		// ...
+	}
+
+	private void render(Graphics g) {
+		g.setColor(Color.BLACK);
+		g.fillRect(0, 0, getWidth(), getHeight());
+		g.setFont(font);
+		g.setColor(Color.YELLOW);
+		if (g instanceof Graphics2D) {
+			Graphics2D g2 = (Graphics2D) g;
+			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			//.getFontRenderContext()
+		}
+		int winBarHeight = getHeight() - getContentPane().getHeight();
+//		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
+		String statsStr = "Average FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
+		g.drawString(statsStr, 5, winBarHeight + metrics.getHeight());  // was (10,55)
+//        String str = "FPS: " + fps;
+//        int winBarHeight = getHeight() - getContentPane().getHeight();
+//        g.drawString(str, 2, winBarHeight + g.getFontMetrics().getHeight());
+	}
+
+	/* Tasks to do before terminating. Called at end of run()
+	   and via the shutdown hook in readyForTermination().
+
+	   The call at the end of run() is not really necessary, but
+	   included for safety. The flag stops the code being called
+	   twice.
+	*/
+	protected void finishOff() {
+		// System.out.println("finishOff");
+		if (!finishedOff) {
+			finishedOff = true;
+			printStats();
+			restoreScreen(); // make sure we restore the video mode before exiting
+			System.exit(0);
+		}
+	}
+
+	/**
+	 * Remove the window from the screen, if we are in full screen
+	 * mode then we need to reset the video mode.
+	 */
+	protected void restoreScreen() {
+		setVisible(false); //you can't see me!
+		GraphicsDevice gd = getGraphicsConfiguration().getDevice();
+		Window w = gd.getFullScreenWindow();
+		if (w != null) {
+			w.dispose(); // destroy the JFrame object (this)
+		}
+		gd.setFullScreenWindow(null);
 	}
 
 	/* The statistics:
@@ -307,9 +402,8 @@ public class GraphicsApplication extends JFrame implements WindowListener {
      - the FPS (frames/sec) and UPS (updates/sec) for this interval,
        the average FPS & UPS over the last NUM_FPSs intervals.
 
-    The data is collected every MAX_STATS_INTERVAL  (1 sec).
+    	The data is collected every MAX_STATS_INTERVAL  (1 sec).
     */
-	// TODO Fix!!
 	private void storeStats() {
 		frameCount++;
 		statsInterval += period;
@@ -365,76 +459,13 @@ public class GraphicsApplication extends JFrame implements WindowListener {
 		}
 	}
 
-	// prev methods
-//	private void calculateFramesPerSecond(long curRenderTime) {
-//		if (curRenderTime - lastFpsTime >= NANO_IN_MILLI * 1000) {
-//			fps = frameCounter;
-//			frameCounter = 0;
-//			lastFpsTime = curRenderTime;
-//		}
-//		frameCounter++;
-//	}
-
-	private void update(long elapsedTime) {
-//        System.out.flush();
-//        System.err.flush();
-		// check input that can happen whether paused or not
-		checkSystemInput();
-		if (!isPaused && !gameOver) {
-			// TODO check app input
-			updateWorld(elapsedTime);
-		}
-	}
-
-	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
-	private void checkSystemInput() {
-		if (pauseAction.isPressed()) {
-			isPaused = !isPaused;
-		}
-		if (exitAction.isPressed()) {
-			stopApp();
-		}
-		if (toggleFullscreenAction.isPressed()) {
-			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
-			toggleFullscreen();
-		}
-		// ...
-	}
-
-	private void updateWorld(long l) {
-		// ...
-	}
-
-	private void render(Graphics g) {
-		g.setColor(Color.BLACK);
-		g.fillRect(0, 0, getWidth(), getHeight());
-		g.setFont(font);
-		g.setColor(Color.YELLOW);
-		if (g instanceof Graphics2D) {
-			Graphics2D g2 = (Graphics2D) g;
-			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			//.getFontRenderContext()
-		}
-		int winBarHeight = getHeight() - getContentPane().getHeight();
-//		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
-		String statsStr = "Average FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
-		g.drawString(statsStr, 5, winBarHeight + metrics.getHeight());  // was (10,55)
-//        String str = "FPS: " + fps;
-//        int winBarHeight = getHeight() - getContentPane().getHeight();
-//        g.drawString(str, 2, winBarHeight + g.getFontMetrics().getHeight());
-	}
-
-	/**
-	 * Remove the window from the screen, if we are in full screen
-	 * mode then we need to reset the video mode.
-	 */
-	// TODO vedi finishOff in WormChase.java fullscreen libro
-	public void initFromScreen() {
-		if (!this.isWindowed) {
-			getGraphicsConfiguration().getDevice().setFullScreenWindow(null);
-		}
-		setVisible(false); //you can't see me!
-		dispose(); //Destroy the JFrame object
+	private void printStats() {
+		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
+		System.out.println("Average FPS: " + df.format(averageFPS));
+		System.out.println("Average UPS: " + df.format(averageUPS));
+		System.out.println("Time Spent: " + timeSpentInGame + " secs");
+		// TODO invoke app logic print stats?? APP_HOOK
+		System.out.flush();
 	}
 
 	// called when the JFrame is activated / deiconified
