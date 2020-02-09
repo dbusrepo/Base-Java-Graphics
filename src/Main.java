@@ -4,9 +4,10 @@ import java.util.Map;
 
 public class Main {
 
-	private static final boolean START_WINDOWED = true;
+	private static final boolean USE_FULLSCREEN = true;
 	private static final int DEFAULT_WIDTH = 1024;
 	private static final int DEFAULT_HEIGHT = 768;
+	private static final boolean PRINT_DEBUG_INFO = true;
 
 	static class ArgSettings {
 
@@ -20,7 +21,7 @@ public class Main {
 		}
 
 		boolean useFullScreen() {
-			return !START_WINDOWED;
+			return USE_FULLSCREEN;
 		}
 
 		int getWidth() {
@@ -37,7 +38,7 @@ public class Main {
 		ArgSettings settings = new ArgSettings(args);
 		settings.useFullScreen();
 
-		new GraphicsApplication(settings.getWidth(), settings.getHeight(), settings.useFullScreen());
+		new GraphicsApplication(settings.getWidth(), settings.getHeight(), settings.useFullScreen(), PRINT_DEBUG_INFO);
 //        System.out.println("Exiting main...");
 	}
 

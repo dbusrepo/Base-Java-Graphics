@@ -6,7 +6,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.image.BufferStrategy;
-import java.lang.reflect.InvocationTargetException;
 import java.text.DecimalFormat;
 
 // vedere:
@@ -19,20 +18,17 @@ import java.text.DecimalFormat;
 // see reader comments about the book chapters on the book website
 // vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen in generale
 
-// TODO remove 'game'
-
 public class GraphicsApplication extends JFrame implements WindowListener, Runnable {
 
 	private static final String TITLE = "Java Graphics";
 
-	private static final boolean SHOW_STATISTICS = true; // TODO move to settings?
-
-	private static final int NUM_BUFFERS = 3; // used for page flipping
-	private static final boolean VSYNC = true; // TODO
+	private static final int NUM_BUFFERS = 3;
 
 	private static final long NANO_IN_MILLI = 1000000L;
 	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
-	public static final int FONT_SIZE = 22;
+
+	public static final int FONT_SIZE = 20;
+	public static final String FONT_NAME = "SansSerif";
 
 	private static long MAX_STATS_INTERVAL = NANO_IN_SEC; // in ns
 	// private static long MAX_STATS_INTERVAL = 1000L;
@@ -47,7 +43,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private static int MAX_FRAME_SKIPS = 5;
 
 	// number of FPS values stored to get an average
-	private static int NUM_FPS = 10;
+	private static int NUM_AVG_FPS = 10;
 
 	private static int TARGET_FPS = 60; // -1 if not used // TODO ?? move to settings params...
 
@@ -55,6 +51,10 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 
 	//    private GraphicsEnvironment graphicsEnvironment;
 	//    private GraphicsDevice screenDevice;
+
+	private int width, height;
+	private boolean useFullScreen;
+	private boolean printDebugInfo;
 
 	protected Thread renderThread = null;
 
@@ -66,10 +66,10 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private long period;  // period between drawing in _nanosecs_
 
 	// used for gathering statistics
-	private long statsInterval = 0L; // in ns
+	private long statsInterval = 0L; // ns
 	private long prevStatsTime;
 	private long totalElapsedTime = 0L;
-	private long timeSpentInGame = 0; // in seconds
+	private long timeSpentInApp = 0; // seconds
 
 	private long frameCount = 0;
 	private double fpsStore[];
@@ -87,124 +87,112 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private Font font;
 	private FontMetrics metrics;
 
-	private boolean useFullScreen;
 	//	private final Dimension winDimension;
-	private int width, height;     // frame dimensions
+	private int windowBarHeight;
 
 	private InputManager inputManager;
 	private InputAction exitAction;
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
 
-	private long gameStartTime;
+	private long appStartTime;
 	private long lastFpsTime;
 
 	// used for full-screen exclusive mode
 	private GraphicsDevice gd;
-	private Graphics gScr;
 	private BufferStrategy bufferStrategy;
 
 	// init for windowed mode
-	public GraphicsApplication(int width, int height, boolean useFullScreen) {
+	public GraphicsApplication(int width, int height, boolean useFullScreen, boolean printDebugInfo) {
 		System.out.println("Initializing the graphics application...");
 		//        graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		//        screenDevice = graphicsEnvironment.getDefaultScreenDevice();
 //		this.winDimension = new Dimension(width, height);
+//		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+//		this.gd = ge.getDefaultScreenDevice();
+		this.gd = getGraphicsConfiguration().getDevice();
 		this.width = width;
 		this.height = height;
 		this.useFullScreen = useFullScreen;
+		this.printDebugInfo = printDebugInfo;
 
-//      setDefaultLookAndFeelDecorated(true);
-//      setSize(windowedWidth, windowedHeight);
-		setUndecorated(useFullScreen); // no menu bar, borders, etc. or Swing components
-		setIgnoreRepaint(true); // turn off all paint events since doing active rendering
-		setTitle(TITLE);
-		setBackground(Color.BLACK);
-		adjustWinSize();
-		if (useFullScreen) {
-			initFullScreen();
-//			if (!GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().isFullScreenSupported()) {
-////			if (!getGraphicsConfiguration().getDevice().isFullScreenSupported()) {
-//				System.out.println("Full-screen mode not supported");
-//				System.exit(0);
-//			}
-//			setExtendedState(JFrame.MAXIMIZED_BOTH);
-//			getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
-		}
-		setResizable(false);
-		setVisible(true);
-		setLocationRelativeTo(null); // called after setVisible(true); to center the window
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-		createBufferStrategy(); // TODO ma serve?
-
-		initInputManager();
-
-		addWindowListener(this);
-		setFocusable(true);
-		requestFocus();
-		requestFocusInWindow();
-
-		// set up message font
-		font = new Font("SansSerif", Font.BOLD, FONT_SIZE);
-		metrics = this.getFontMetrics(font);
+		this.font = new Font(FONT_NAME, Font.BOLD, FONT_SIZE);
+		this.metrics = this.getFontMetrics(font);
 
 		// initialise timing elements
-		fpsStore = new double[NUM_FPS];
-		upsStore = new double[NUM_FPS];
-		for (int i = 0; i < NUM_FPS; i++) {
+		this.fpsStore = new double[NUM_AVG_FPS];
+		this.upsStore = new double[NUM_AVG_FPS];
+		for (int i = 0; i < NUM_AVG_FPS; i++) {
 			fpsStore[i] = 0.0;
 			upsStore[i] = 0.0;
 		}
 
 		// calc the frame period and print it
-		period = 0L;  // rendering FPS (nanosecs/targetFPS) // da mettere tra i settings?
-		period = NANO_IN_SEC / TARGET_FPS; // in ns
-		System.out.println("FPS: " + TARGET_FPS + ", vsync=" + VSYNC);
-		System.out.println("FPS period: " + period);
+//		this.period = 0L;  // rendering FPS (nanosecs/targetFPS) // da mettere tra i settings?
+		this.period = NANO_IN_SEC / TARGET_FPS; // in ns
 
-		// create app/game components
+//      setDefaultLookAndFeelDecorated(true);
+//      setSize(windowedWidth, windowedHeight);
+		setUndecorated(useFullScreen); // no menu bar, borders, etc. or Swing components?
+		setIgnoreRepaint(true); // turn off all paint events since doing active rendering
+
+		adjustWinSize();
+		setResizable(false);
+		setVisible(true);
+		setLocationRelativeTo(null); // called after setVisible(true); to center the window (first screen only?)
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.windowBarHeight = getHeight() - getContentPane().getHeight(); // save the win bar height for later use
+		if (useFullScreen) {
+			initFullScreen();
+		}
+		setBufferStrategy();
+
+//		System.out.println("Target FPS: " + TARGET_FPS);
+//		System.out.println("Target FPS period: " + period);
+
+		// create app components
 		// TODO APP_HOOK
+
+		initInputManager();
+		addWindowListener(this);
+		setFocusable(true);
+		requestFocus();
+		requestFocusInWindow();
 
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
+
+		setTitle(TITLE);
+//		setBackground(Color.BLACK);
 
 		// start the app
 		start();
 	}
 
 	private void initFullScreen() {
-		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-		gd = ge.getDefaultScreenDevice();
-
+//			if (!GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().isFullScreenSupported()) {
+////			if (!getGraphicsConfiguration().getDevice().isFullScreenSupported()) {
 		if (!gd.isFullScreenSupported()) {
 			System.out.println("Full-screen exclusive mode not supported");
 			System.exit(0);
 		}
+
+		setExtendedState(JFrame.MAXIMIZED_BOTH);
 		gd.setFullScreenWindow(this); // switch on full-screen exclusive mode
 
 		// we can now adjust the display modes, if we wish
-		showCurrentMode();
+//		showCurrentMode();
 
 		// setDisplayMode(800, 600, 8);   // or try 8 bits
 		// setDisplayMode(1280, 1024, 32);
 
-		// reportCapabilities();
+//		reportCapabilities();
 
 //		pWidth = getBounds().width;
 //		pHeight = getBounds().height;
 //
 //		setBufferStrategy();
 	}  // end of initFullScreen()
-
-	private void showCurrentMode()
-	// print the display mode details for the graphics device
-	{
-		DisplayMode dm = gd.getDisplayMode();
-		System.out.println("Current Display Mode: (" +
-				dm.getWidth() + "," + dm.getHeight() + "," +
-				dm.getBitDepth() + "," + dm.getRefreshRate() + ")  ");
-	}
 
 	protected class ShutDownThread extends Thread {
 		@Override
@@ -235,23 +223,26 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		setVisible(false);
 		dispose();
 		setUndecorated(useFullScreen);
+		gd = getGraphicsConfiguration().getDevice();
 		if (useFullScreen) {
 			setExtendedState(JFrame.MAXIMIZED_BOTH);
-			getGraphicsConfiguration().getDevice().setFullScreenWindow(this);
+			gd.setFullScreenWindow(this);
 		} else {
 			setExtendedState(JFrame.NORMAL);
-			getGraphicsConfiguration().getDevice().setFullScreenWindow(null);
+			gd.setFullScreenWindow(null);
 		}
 		adjustWinSize();
 		setVisible(true);
+//			setLocationRelativeTo(null); // problem..it moves the window to the first screen
 	}
 
 	private void adjustWinSize() {
-		//windowBarHeight = (int) (HEIGHT or getHeight() ? - getContentPane().getSize().getHeight());
-		//setSize(WIDTH, HEIGHT + windowBarHeight);
-//		getContentPane().setSize(width, height); // https://stackoverflow.com/questions/1783793/java-difference-between-the-setpreferredsize-and-setsize-methods-in-compone
 		getContentPane().setPreferredSize(new Dimension(width, height));
 		pack();
+//		setSize(width, height); // da chiamare prima di setVisible? title bar problem
+//		setVisible(true);
+		//windowBarHeight = (int) (HEIGHT or getHeight() ? - getContentPane().getSize().getHeight());
+		//setSize(WIDTH, HEIGHT + windowBarHeight);
 	}
 
 	private void initInputManager() {
@@ -264,19 +255,35 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		inputManager.mapToKey(toggleFullscreenAction, KeyEvent.VK_F1);
 	}
 
-	private void createBufferStrategy() {
+	private void setBufferStrategy() {
 		// avoid potential deadlock in 1.4.1_02
+		/* Switch on page flipping: NUM_BUFFERS == 2 so
+		 there will be a 'primary surface' and one 'back buffer'.
+
+		 The use of invokeAndWait() is to avoid a possible deadlock
+		 with the event dispatcher thread. Should be fixed in J2SE 1.5
+
+		 createBufferStrategy) is an asynchronous operation, so sleep
+		 a bit so that the getBufferStrategy() call will get the
+		 correct details.
+	  */
 		try {
 			EventQueue.invokeAndWait(new Runnable() {
 				public void run() {
 					createBufferStrategy(NUM_BUFFERS);
 				}
 			});
-		} catch (InterruptedException ex) {
-			// ignore
-		} catch (InvocationTargetException ex) {
-			// ignore
+		} catch (Exception e) {
+			System.out.println("Error while creating buffer strategy");
+			System.exit(0);
 		}
+
+		try {  // sleep to give time for the buffer strategy to be carried out
+			Thread.sleep(500);  // 0.5 sec
+		} catch (InterruptedException ex) {}
+
+		// Cache the buffer strategy
+		bufferStrategy = getBufferStrategy();
 	}
 
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
@@ -288,12 +295,9 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		int numDelays = 0;
 		long excess = 0L;
 
-		gameStartTime = System.nanoTime();
-		prevStatsTime = gameStartTime;
-		beforeTime = gameStartTime;
-
-		// Cache the buffer strategy
-		BufferStrategy bufferStrategy = getBufferStrategy();
+		appStartTime = System.nanoTime();
+		prevStatsTime = appStartTime;
+		beforeTime = appStartTime;
 
 		isRunning = true;
 
@@ -301,24 +305,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		while (isRunning) {
 			// update
 			update(0); // TODO fix/change arg 0?
-
-			// rendering
-			// Note: render only if (!isPaused && !gameOver)// see section Inefficient Pausing in https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
-
-			//painting
-			Graphics graphics = bufferStrategy.getDrawGraphics();
-			// see user comments here https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
-			render(graphics);
-			graphics.dispose();
-			if (VSYNC) {
-				Toolkit.getDefaultToolkit().sync();
-			}
-
-			// Flip the buffer
-			if (!bufferStrategy.contentsLost()) {
-				bufferStrategy.show();
-			}
-			// end painting
+			screenUpdate();
 
 			afterTime = System.nanoTime();
 			timeDiff = afterTime - beforeTime;
@@ -328,7 +315,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 				//System.out.println("sleepTime: " + (sleepTime/NANO_IN_MILLI));
 				try {
 					Thread.sleep(sleepTime / NANO_IN_MILLI);//nano->ms
-					numDelays = 0;   // reset noDelays when sleep occurs // see section Sleep is like Yield in https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
+					numDelays = 0;   // reset noDelays when sleep occurs // see section Sleep is like Yield https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
 				} catch (InterruptedException ex) { }
 				overSleepTime = (System.nanoTime() - afterTime) - sleepTime;
 			} else { // sleepTime <= 0; the frame took longer than the period
@@ -343,7 +330,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 
 			beforeTime = System.nanoTime();
 
-            /* If frame animation is taking too long, update the game state
+            /* If frame animation is taking too long, update the state
              without rendering it, to get the updates/sec nearer to
              the required FPS. */
 			int skips = 0;
@@ -359,6 +346,48 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 			storeStats();
 		}
 		finishOff();
+	}
+
+	private void screenUpdate() {
+		// use active rendering
+		try {
+			Graphics gScr = bufferStrategy.getDrawGraphics();
+			appRender(gScr);
+			if (printDebugInfo) {
+				drawDebugInfo(gScr);
+			}
+			gScr.dispose();
+			if (!bufferStrategy.contentsLost()) {
+				bufferStrategy.show();
+			} else {
+				System.out.println("Contents Lost");
+			}
+			// Sync the display on some systems.
+			// (on Linux, this fixes event queue problems)
+			Toolkit.getDefaultToolkit().sync();
+		} catch (Exception e) {
+			e.printStackTrace();
+			isRunning = false;
+		}
+	}
+
+	// TODO APP_HOOK
+	protected void drawDebugInfo(Graphics g) {
+		g.setFont(font);
+		g.setColor(Color.YELLOW);
+		if (g instanceof Graphics2D) {
+			((Graphics2D) g).setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+		}
+//		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
+		String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
+		g.drawString(debugInfo, 2, windowBarHeight + metrics.getHeight());  // was (10,55)
+	}
+
+	// TODO APP_HOOK
+	protected void appRender(Graphics g) {
+		// Note: render only if (!isPaused && !appOver) ? // see section Inefficient Pausing https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
+		g.setColor(Color.BLACK);
+		g.fillRect(0, 0, getWidth(), getHeight());
 	}
 
 	private void update(long elapsedTime) {
@@ -389,25 +418,6 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 			toggleFullscreen();
 		}
 		// ...
-	}
-
-	private void render(Graphics g) {
-		g.setColor(Color.BLACK);
-		g.fillRect(0, 0, getWidth(), getHeight());
-		g.setFont(font);
-		g.setColor(Color.YELLOW);
-		if (g instanceof Graphics2D) {
-			Graphics2D g2 = (Graphics2D) g;
-			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			//.getFontRenderContext()
-		}
-		int winBarHeight = getHeight() - getContentPane().getHeight();
-//		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
-		String statsStr = "Average FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
-		g.drawString(statsStr, 5, winBarHeight + metrics.getHeight());  // was (10,55)
-//        String str = "FPS: " + fps;
-//        int winBarHeight = getHeight() - getContentPane().getHeight();
-//        g.drawString(str, 2, winBarHeight + g.getFontMetrics().getHeight());
 	}
 
 	/* Tasks to do before terminating. Called at end of run()
@@ -450,7 +460,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
      - the total frame count, which is the total number of calls to run();
 
      - the frames skipped in this interval, the total number of frames
-       skipped. A frame skip is a game update without a corresponding render;
+       skipped. A frame skip is a state update without a corresponding render;
 
      - the FPS (frames/sec) and UPS (updates/sec) for this interval,
        the average FPS & UPS over the last NUM_FPSs intervals.
@@ -462,7 +472,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		statsInterval += period;
 		if (statsInterval >= MAX_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
 			long timeNow = System.nanoTime();
-			timeSpentInGame = (timeNow - gameStartTime) / NANO_IN_SEC;  // ns --> secs
+			timeSpentInApp = (timeNow - appStartTime) / NANO_IN_SEC;  // ns --> secs
 
 			long realElapsedTime = timeNow - prevStatsTime;   // time since last stats collection
 			totalElapsedTime += realElapsedTime;
@@ -479,23 +489,23 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 			}
 
 			// store the latest FPS and UPS
-			fpsStore[(int) statsCount % NUM_FPS] = actualFPS;
-			upsStore[(int) statsCount % NUM_FPS] = actualUPS;
+			fpsStore[(int) statsCount % NUM_AVG_FPS] = actualFPS;
+			upsStore[(int) statsCount % NUM_AVG_FPS] = actualUPS;
 			statsCount++;
 
 			double totalFPS = 0.0;     // total the stored FPSs and UPSs
 			double totalUPS = 0.0;
-			for (int i = 0; i < NUM_FPS; i++) {
+			for (int i = 0; i < NUM_AVG_FPS; i++) {
 				totalFPS += fpsStore[i];
 				totalUPS += upsStore[i];
 			}
 
-			if (statsCount < NUM_FPS) { // obtain the average FPS and UPS
+			if (statsCount < NUM_AVG_FPS) { // obtain the average FPS and UPS
 				averageFPS = totalFPS / statsCount;
 				averageUPS = totalUPS / statsCount;
 			} else {
-				averageFPS = totalFPS / NUM_FPS;
-				averageUPS = totalUPS / NUM_FPS;
+				averageFPS = totalFPS / NUM_AVG_FPS;
+				averageUPS = totalUPS / NUM_AVG_FPS;
 			}
 
 //			System.out.println(timedf.format((double) statsInterval / NANO_IN_SEC) + " " +
@@ -516,7 +526,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
-		System.out.println("Time Spent: " + timeSpentInGame + " secs");
+		System.out.println("Time Spent: " + timeSpentInApp + " secs");
 		// TODO invoke app logic print stats?? APP_HOOK
 		System.out.flush();
 //		System.err.flush();
