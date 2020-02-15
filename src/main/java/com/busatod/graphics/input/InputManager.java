@@ -1,4 +1,4 @@
-package com.busatod.java.graphics;
+package com.busatod.graphics.input;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;

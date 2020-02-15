@@ -1,10 +1,11 @@
-import com.busatod.java.graphics.GraphicsApplication;
+package com.busatod.graphics;
 
 import java.util.Map;
+import com.busatod.graphics.display.*;
 
 public class Main {
 
-	private static final boolean USE_FULLSCREEN = true;
+	private static final boolean USE_FULLSCREEN = false;
 	private static final int DEFAULT_WIDTH = 1024;
 	private static final int DEFAULT_HEIGHT = 768;
 	private static final boolean PRINT_DEBUG_INFO = true;
@@ -37,9 +38,7 @@ public class Main {
 	public static void main(String[] args) {
 		ArgSettings settings = new ArgSettings(args);
 		settings.useFullScreen();
-
 		new GraphicsApplication(settings.getWidth(), settings.getHeight(), settings.useFullScreen(), PRINT_DEBUG_INFO);
-//        System.out.println("Exiting main...");
 	}
 
 }

@@ -1,4 +1,4 @@
-package com.busatod.java.graphics;
+package com.busatod.graphics.display;
 
 import javax.swing.*;
 import java.awt.*;
@@ -7,6 +7,7 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.image.BufferStrategy;
 import java.text.DecimalFormat;
+import com.busatod.graphics.input.*;
 
 // vedere:
 // https://stackoverflow.com/questions/35516191/what-is-the-correct-way-to-use-createbufferstrategy
@@ -104,7 +105,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 
 	// init for windowed mode
 	public GraphicsApplication(int width, int height, boolean useFullScreen, boolean printDebugInfo) {
-		System.out.println("Initializing the graphics application...");
+//		System.out.println("...")
 		//        graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		//        screenDevice = graphicsEnvironment.getDefaultScreenDevice();
 //		this.winDimension = new Dimension(width, height);
@@ -351,12 +352,12 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private void screenUpdate() {
 		// use active rendering
 		try {
-			Graphics gScr = bufferStrategy.getDrawGraphics();
-			appRender(gScr);
+			Graphics2D gScr2d = (Graphics2D) bufferStrategy.getDrawGraphics();
+			appRender(gScr2d);
 			if (printDebugInfo) {
-				drawDebugInfo(gScr);
+				drawDebugInfo(gScr2d);
 			}
-			gScr.dispose();
+			gScr2d.dispose();
 			if (!bufferStrategy.contentsLost()) {
 				bufferStrategy.show();
 			} else {
@@ -372,19 +373,17 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	}
 
 	// TODO APP_HOOK
-	protected void drawDebugInfo(Graphics g) {
+	protected void drawDebugInfo(Graphics2D g) {
 		g.setFont(font);
 		g.setColor(Color.YELLOW);
-		if (g instanceof Graphics2D) {
-			((Graphics2D) g).setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		}
+		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 //		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
 		String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
 		g.drawString(debugInfo, 2, windowBarHeight + metrics.getHeight());  // was (10,55)
 	}
 
 	// TODO APP_HOOK
-	protected void appRender(Graphics g) {
+	protected void appRender(Graphics2D g) {
 		// Note: render only if (!isPaused && !appOver) ? // see section Inefficient Pausing https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, getWidth(), getHeight());

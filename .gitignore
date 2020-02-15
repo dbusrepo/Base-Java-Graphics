@@ -1,3 +1,67 @@
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Editor Files #
+################
+*~
+*.swp
+*.sublime-*
+.textmate
+*.sw[nop]
+# Emacs
+# -----
+*~
+\#*\#
+.\#*
+
+# Java build artifacts class files
+*.class
+
+# other generated files dirs
+bin/
+obj/
+gen/
+out/
+build/
+target/
+
+# Eclipse
+# -------
+*.classpath
+*.project
+*.settings
+/bin
+/subprojects/*/bin
+atlassian-ide-plugin.xml
+.metadata/
+
+# Idea project files
 out/
 .idea/
+*.ipr
+*.iws
 *.iml
+atlassian-ide-plugin.xml
+
+# Logs and databases #
+######################
+*.log
+
+# gradle stuff
+.gradle/
+# Ignore Gradle GUI config
+gradle-app.setting
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+# Cache of project
+.gradletasknamecache
