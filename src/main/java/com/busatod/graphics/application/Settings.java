@@ -6,12 +6,14 @@ public class Settings {
 	static final int NUM_BUFFERS = 3;
 	static final int TARGET_FPS = 80;
 	static final String TITLE = "Java Graphics";
+	static final int BIT_DEPTH = 32;
 
-	String title = TITLE;
-	int width = WIDHT;
-	int height = HEIGHT;
-	boolean fullScreen;
-	boolean debugInfo = true;
-	int numBuffers = NUM_BUFFERS;
-	int targetFps = TARGET_FPS;
+	public String title = TITLE;
+	public int width = WIDHT;
+	public int height = HEIGHT;
+	public int bitDepth = BIT_DEPTH;
+	public boolean fullScreen;
+	public boolean debugInfo = true;
+	public int numBuffers = NUM_BUFFERS;
+	public int targetFps = TARGET_FPS;
 }

@@ -1,6 +1,5 @@
 package com.busatod.graphics.application;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
@@ -43,7 +42,10 @@ public class GraphicsApplication implements Runnable {
 	/******************************************************************************************************************/
 
 	private Settings settings;
+
 	private ApplicationFrame applicationFrame;
+	private final GraphicsDevice graphDevice;
+	private final GraphicsConfiguration graphConfig;
 	private BufferStrategy bufferStrategy;
 
 	protected Thread renderThread = null;
@@ -56,6 +58,7 @@ public class GraphicsApplication implements Runnable {
 	private long period;  // period between drawing in _nanosecs_
 
 	// used for gathering statistics
+	private long startTime;
 	private long statsInterval = 0L; // ns
 	private long prevStatsTime;
 	private long totalElapsedTime = 0L;
@@ -82,9 +85,6 @@ public class GraphicsApplication implements Runnable {
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
 
-	private long appStartTime;
-//	private long lastFpsTime;
-
 
 	public GraphicsApplication(Settings settings) {
 
@@ -92,13 +92,13 @@ public class GraphicsApplication implements Runnable {
 
 		// Acquiring the current graphics device and graphics configuration
 		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
-		GraphicsDevice graphDevice = graphEnv.getDefaultScreenDevice();
-		GraphicsConfiguration graphicConfig = graphDevice.getDefaultConfiguration();
+		this.graphDevice = graphEnv.getDefaultScreenDevice();
+		this.graphConfig = graphDevice.getDefaultConfiguration();
 
-		this.applicationFrame = new ApplicationFrame(graphicConfig, this);
+		this.applicationFrame = new ApplicationFrame(this);
 		this.bufferStrategy = this.applicationFrame.getBufferStrategy(); // cached
-
 		// initialise timing elements
+
 		this.fpsStore = new double[NUM_AVG_FPS];
 		this.upsStore = new double[NUM_AVG_FPS];
 		for (int i = 0; i < NUM_AVG_FPS; i++) {
@@ -182,6 +182,7 @@ public class GraphicsApplication implements Runnable {
 //		if (useFullScreen) {
 //			setExtendedState(JFrame.MAXIMIZED_BOTH);
 //			graphDevice.setFullScreenWindow(this);
+	// // originalDisplayMode reset?
 //		} else {
 //			setExtendedState(JFrame.NORMAL);
 //			graphDevice.setFullScreenWindow(null);
@@ -209,9 +210,9 @@ public class GraphicsApplication implements Runnable {
 		int numDelays = 0;
 		long excess = 0L;
 
-		appStartTime = System.nanoTime();
-		prevStatsTime = appStartTime;
-		beforeTime = appStartTime;
+		startTime = System.nanoTime();
+		prevStatsTime = startTime;
+		beforeTime = startTime;
 
 		isRunning = true;
 
@@ -345,24 +346,9 @@ public class GraphicsApplication implements Runnable {
 		if (!finishedOff) {
 			finishedOff = true;
 			printStats();
-			restoreScreen(); // make sure we restore the video mode before exiting
+			applicationFrame.restoreScreen(); // make sure we restore the video mode before exiting
 			System.exit(0);
 		}
-	}
-
-	// TODO
-	/**
-	 * Remove the window from the screen, if we are in full screen
-	 * mode then we need to reset the video mode.
-	 */
-	protected void restoreScreen() {
-//		setVisible(false); //you can't see me!
-//		GraphicsDevice gd = getGraphicsConfiguration().getDevice();
-//		Window w = gd.getFullScreenWindow();
-//		if (w != null) {
-//			w.dispose(); // destroy the JFrame object (this)
-//		}
-//		gd.setFullScreenWindow(null);
 	}
 
 	/* The statistics:
@@ -386,7 +372,7 @@ public class GraphicsApplication implements Runnable {
 		statsInterval += period;
 		if (statsInterval >= MAX_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
 			long timeNow = System.nanoTime();
-			timeSpentInApp = (timeNow - appStartTime) / NANO_IN_SEC;  // ns --> secs
+			timeSpentInApp = (timeNow - startTime) / NANO_IN_SEC;  // ns --> secs
 
 			long realElapsedTime = timeNow - prevStatsTime;   // time since last stats collection
 			totalElapsedTime += realElapsedTime;
@@ -437,6 +423,7 @@ public class GraphicsApplication implements Runnable {
 	}
 
 	private void printStats() {
+		System.out.flush();
 		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
@@ -462,4 +449,13 @@ public class GraphicsApplication implements Runnable {
 	public void setSettings(Settings settings) {
 		this.settings = settings;
 	}
+
+	public GraphicsDevice getGraphDevice() {
+		return graphDevice;
+	}
+
+	public GraphicsConfiguration getGraphConfig() {
+		return graphConfig;
+	}
+
 }
