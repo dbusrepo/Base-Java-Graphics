@@ -26,6 +26,9 @@ public class InputManager implements KeyListener {
 		// allow input of the TAB key and other keys normally
 		// used for focus traversal
 		comp.setFocusTraversalKeysEnabled(false);
+		comp.setFocusable(true);
+		comp.requestFocus();
+		comp.requestFocusInWindow();
 	}
 
 	/**
