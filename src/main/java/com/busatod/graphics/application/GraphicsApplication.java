@@ -1,10 +1,8 @@
-package com.busatod.graphics.display;
+package com.busatod.graphics.application;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.awt.image.BufferStrategy;
 import java.text.DecimalFormat;
 import com.busatod.graphics.input.*;
@@ -19,19 +17,15 @@ import com.busatod.graphics.input.*;
 // see reader comments about the book chapters on the book website
 // vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen in generale
 
-public class GraphicsApplication extends JFrame implements WindowListener, Runnable {
-
-	private static final String TITLE = "Java Graphics";
-
-	private static final int NUM_BUFFERS = 3;
+public class GraphicsApplication implements Runnable {
 
 	private static final long NANO_IN_MILLI = 1000000L;
 	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
 
-	public static final int FONT_SIZE = 20;
-	public static final String FONT_NAME = "SansSerif";
+	private static final int FONT_SIZE = 20;
+	private static final String FONT_NAME = "SansSerif";
 
-	private static long MAX_STATS_INTERVAL = NANO_IN_SEC; // in ns
+	private static long MAX_STATS_INTERVAL = NANO_IN_SEC; // in ns, 1sec
 	// private static long MAX_STATS_INTERVAL = 1000L;
 	// record stats every 1 second (roughly)X
 
@@ -46,16 +40,11 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	// number of FPS values stored to get an average
 	private static int NUM_AVG_FPS = 10;
 
-	private static int TARGET_FPS = 60; // -1 if not used // TODO ?? move to settings params...
-
 	/******************************************************************************************************************/
 
-	//    private GraphicsEnvironment graphicsEnvironment;
-	//    private GraphicsDevice screenDevice;
-
-	private int width, height;
-	private boolean useFullScreen;
-	private boolean showDebugInfo;
+	private Settings settings;
+	private ApplicationFrame applicationFrame;
+	private BufferStrategy bufferStrategy;
 
 	protected Thread renderThread = null;
 
@@ -88,41 +77,26 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	private Font font;
 	private FontMetrics metrics;
 
-	//	private final Dimension winDimension;
-	//	private int windowBarHeight;
-
 	private InputManager inputManager;
 	private InputAction exitAction;
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
 
 	private long appStartTime;
-	private long lastFpsTime; // TODO this???
+//	private long lastFpsTime;
 
-	// used for full-screen exclusive mode
-	private GraphicsDevice graphDevice;
-	private final GraphicsConfiguration graphConfig;
-	private final Canvas canvas;
-	private BufferStrategy bufferStrategy;
 
-	// init for windowed mode
-	public GraphicsApplication(int width, int height, boolean useFullScreen, boolean showDebugInfo) {
-//		JFrame(GraphicsConfiguration gc) // TODO and this??
-		//		System.out.println("...")
-		//        graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
-		//        screenDevice = graphicsEnvironment.getDefaultScreenDevice();
-//		this.winDimension = new Dimension(width, height);
-//		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-//		this.gd = ge.getDefaultScreenDevice();
-		this.graphDevice = getGraphicsConfiguration().getDevice();
-		this.graphConfig = this.graphDevice.getDefaultConfiguration();
-		this.width = width;
-		this.height = height;
-		this.useFullScreen = useFullScreen;
-		this.showDebugInfo = showDebugInfo;
+	public GraphicsApplication(Settings settings) {
 
-		this.font = new Font(FONT_NAME, Font.BOLD, FONT_SIZE);
-		this.metrics = this.getFontMetrics(font);
+		this.settings = settings;
+
+		// Acquiring the current graphics device and graphics configuration
+		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsDevice graphDevice = graphEnv.getDefaultScreenDevice();
+		GraphicsConfiguration graphicConfig = graphDevice.getDefaultConfiguration();
+
+		this.applicationFrame = new ApplicationFrame(graphicConfig, this);
+		this.bufferStrategy = this.applicationFrame.getBufferStrategy(); // cached
 
 		// initialise timing elements
 		this.fpsStore = new double[NUM_AVG_FPS];
@@ -132,72 +106,47 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 			upsStore[i] = 0.0;
 		}
 
-		// calc the frame period and print it
-//		this.period = 0L;  // rendering FPS (nanosecs/targetFPS) // da mettere tra i settings?
-		this.period = NANO_IN_SEC / TARGET_FPS; // in ns
+		this.period = NANO_IN_SEC / settings.targetFps;
 
-//      setDefaultLookAndFeelDecorated(true);
-//      setSize(windowedWidth, windowedHeight);
-		setUndecorated(useFullScreen); // no menu bar, borders, etc. or Swing components?
-		setIgnoreRepaint(true); // turn off all paint events since doing active rendering
-		setTitle(TITLE);
-
-		this.canvas = new Canvas();
-		this.canvas.setSize(width, height);
-		this.canvas.setIgnoreRepaint(true);
-		add(this.canvas);
-		pack();
-		setResizable(false);
-		setVisible(true);
-		setLocationRelativeTo(null); // called after setVisible(true); to center the window (first screen only?)
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		initBufferStrategy();
-		if (useFullScreen) {
-			initFullScreen();
-		}
-
-//		System.out.println("Target FPS: " + TARGET_FPS);
-//		System.out.println("Target FPS period: " + period);
+		this.font = new Font(FONT_NAME, Font.BOLD, FONT_SIZE);
+		this.metrics = applicationFrame.getCanvas().getFontMetrics(this.font);
 
 		// create app components
 		// TODO APP_HOOK
 
 		initInputManager();
-		addWindowListener(this);
 
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
-
-//		setBackground(Color.BLACK);
 
 		// start the app
 		start();
 	}
 
-	private void initFullScreen() {
-//			if (!GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().isFullScreenSupported()) {
-////			if (!getGraphicsConfiguration().getDevice().isFullScreenSupported()) {
-		if (!graphDevice.isFullScreenSupported()) {
-			System.out.println("Full-screen exclusive mode not supported");
-			System.exit(0);
-		}
-
-		setExtendedState(JFrame.MAXIMIZED_BOTH);
-		graphDevice.setFullScreenWindow(this); // switch on full-screen exclusive mode
-
-		// we can now adjust the display modes, if we wish
-//		showCurrentMode();
-
-		// setDisplayMode(800, 600, 8);   // or try 8 bits
-		// setDisplayMode(1280, 1024, 32);
-
-//		reportCapabilities();
-
-//		pWidth = getBounds().width;
-//		pHeight = getBounds().height;
+//	private void initFullScreen() {
+////			if (!GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().isFullScreenSupported()) {
+//////			if (!getGraphicsConfiguration().getDevice().isFullScreenSupported()) {
+//		if (!graphDevice.isFullScreenSupported()) {
+//			System.out.println("Full-screen exclusive mode not supported");
+//			System.exit(0);
+//		}
 //
-//		setBufferStrategy();
-	}  // end of initFullScreen()
+//		setExtendedState(JFrame.MAXIMIZED_BOTH);
+//		graphDevice.setFullScreenWindow(this); // switch on full-screen exclusive mode
+//
+//		// we can now adjust the display modes, if we wish
+////		showCurrentMode();
+//
+//		// setDisplayMode(800, 600, 8);   // or try 8 bits
+//		// setDisplayMode(1280, 1024, 32);
+//
+////		reportCapabilities();
+//
+////		pWidth = getBounds().width;
+////		pHeight = getBounds().height;
+////
+////		setBufferStrategy();
+//	}  // end of initFullScreen()
 
 	protected class ShutDownThread extends Thread {
 		@Override
@@ -220,38 +169,30 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		}
 	}
 
+	// TODO move to appFrame
 	// going to fullscreen:
 	// https://stackoverflow.com/questions/13064607/fullscreen-swing-components-fail-to-receive-keyboard-input-on-java-7-on-mac-os-x
 	// https://stackoverflow.com/questions/19645243/keylistener-doesnt-work-after-dispose
-	private void toggleFullscreen() {
-		useFullScreen = !useFullScreen;
-		setVisible(false);
-		dispose();
-		setUndecorated(useFullScreen);
-		graphDevice = getGraphicsConfiguration().getDevice();
-		if (useFullScreen) {
-			setExtendedState(JFrame.MAXIMIZED_BOTH);
-			graphDevice.setFullScreenWindow(this);
-		} else {
-			setExtendedState(JFrame.NORMAL);
-			graphDevice.setFullScreenWindow(null);
-		}
-		adjustWinSize();
-		setVisible(true);
-//			setLocationRelativeTo(null); // problem..it moves the window to the first screen
-	}
-
-	private void adjustWinSize() {
-		getContentPane().setPreferredSize(new Dimension(width, height));
-		pack();
-//		setSize(width, height); // da chiamare prima di setVisible? title bar problem
+//	private void toggleFullscreen() {
+//		useFullScreen = !useFullScreen;
+//		setVisible(false);
+//		dispose();
+//		setUndecorated(useFullScreen);
+//		graphDevice = getGraphicsConfiguration().getDevice();
+//		if (useFullScreen) {
+//			setExtendedState(JFrame.MAXIMIZED_BOTH);
+//			graphDevice.setFullScreenWindow(this);
+//		} else {
+//			setExtendedState(JFrame.NORMAL);
+//			graphDevice.setFullScreenWindow(null);
+//		}
+//		adjustWinSize();
 //		setVisible(true);
-		//windowBarHeight = (int) (HEIGHT or getHeight() ? - getContentPane().getSize().getHeight());
-		//setSize(WIDTH, HEIGHT + windowBarHeight);
-	}
+////			setLocationRelativeTo(null); // problem..it moves the window to the first screen
+//	}
 
 	private void initInputManager() {
-		this.inputManager = new InputManager(this.canvas);
+		inputManager = new InputManager(applicationFrame.getCanvas());
 		exitAction = new InputAction("Exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		pauseAction = new InputAction("Pause", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		toggleFullscreenAction = new InputAction("Toogle Fullscreen", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
@@ -260,42 +201,10 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		inputManager.mapToKey(toggleFullscreenAction, KeyEvent.VK_F1);
 	}
 
-	private void initBufferStrategy() {
-		// avoid potential deadlock in 1.4.1_02
-		/* Switch on page flipping: NUM_BUFFERS == 2 so
-		 there will be a 'primary surface' and one 'back buffer'.
-
-		 The use of invokeAndWait() is to avoid a possible deadlock
-		 with the event dispatcher thread. Should be fixed in J2SE 1.5
-
-		 createBufferStrategy) is an asynchronous operation, so sleep
-		 a bit so that the getBufferStrategy() call will get the
-		 correct details.
-	  */
-		try {
-			EventQueue.invokeAndWait(new Runnable() {
-				public void run() {
-					canvas.createBufferStrategy(NUM_BUFFERS);
-				}
-			});
-		} catch (Exception e) {
-			System.out.println("Error while creating buffer strategy");
-			System.exit(0);
-		}
-
-		try {  // sleep to give time for the buffer strategy to be carried out
-			Thread.sleep(500);  // 0.5 sec
-		} catch (InterruptedException ex) {}
-
-		// Cache the buffer strategy
-		this.bufferStrategy = this.canvas.getBufferStrategy();
-	}
-
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
 	public void run() {
 
-		// times are in ns
-		long beforeTime, afterTime, timeDiff, sleepTime;
+		long beforeTime, afterTime, timeDiff, sleepTime; // times are in ns
 		long overSleepTime = 0L;
 		int numDelays = 0;
 		long excess = 0L;
@@ -358,7 +267,7 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		try {
 			Graphics2D gScr2d = (Graphics2D) bufferStrategy.getDrawGraphics();
 			appRender(gScr2d);
-			if (showDebugInfo) {
+			if (settings.debugInfo) {
 				drawDebugInfo(gScr2d);
 			}
 			gScr2d.dispose();
@@ -390,7 +299,11 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	protected void appRender(Graphics2D g) {
 		// Note: render only if (!isPaused && !appOver) ? // see section Inefficient Pausing https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
 		g.setColor(Color.BLACK);
-		g.fillRect(0, 0, getWidth(), getHeight());
+		g.fillRect(0, 0, getSettings().width, getSettings().height);
+	}
+
+	// TODO APP_HOOK update logic
+	protected void updateState(long elapsedTime) {
 	}
 
 	private void update(long elapsedTime) {
@@ -404,10 +317,6 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		return !isPaused && !appOver;
 	}
 
-	// TODO APP_HOOK update logic
-	protected void updateState(long elapsedTime) {
-	}
-
 	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
 	private void checkSystemInput() {
 		if (pauseAction.isPressed()) {
@@ -416,10 +325,11 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		if (exitAction.isPressed()) {
 			stopApp();
 		}
-		if (toggleFullscreenAction.isPressed()) {
-			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
-			toggleFullscreen();
-		}
+		// TODO
+//		if (toggleFullscreenAction.isPressed()) {
+//			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
+//			toggleFullscreen();
+//		}
 		// ...
 	}
 
@@ -440,18 +350,19 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 		}
 	}
 
+	// TODO
 	/**
 	 * Remove the window from the screen, if we are in full screen
 	 * mode then we need to reset the video mode.
 	 */
 	protected void restoreScreen() {
-		setVisible(false); //you can't see me!
-		GraphicsDevice gd = getGraphicsConfiguration().getDevice();
-		Window w = gd.getFullScreenWindow();
-		if (w != null) {
-			w.dispose(); // destroy the JFrame object (this)
-		}
-		gd.setFullScreenWindow(null);
+//		setVisible(false); //you can't see me!
+//		GraphicsDevice gd = getGraphicsConfiguration().getDevice();
+//		Window w = gd.getFullScreenWindow();
+//		if (w != null) {
+//			w.dispose(); // destroy the JFrame object (this)
+//		}
+//		gd.setFullScreenWindow(null);
 	}
 
 	/* The statistics:
@@ -544,38 +455,11 @@ public class GraphicsApplication extends JFrame implements WindowListener, Runna
 	// called when the JFrame is closing
 	public void stopApp() { isRunning = false; }
 
-	/**
-	 * We may need to handle different window events
-	 */
-	@Override
-	public void windowClosing(java.awt.event.WindowEvent evt) {
-		stopApp();
+	public Settings getSettings() {
+		return settings;
 	}
 
-	@Override
-	public void windowIconified(java.awt.event.WindowEvent evt) {
-		pauseApp();
+	public void setSettings(Settings settings) {
+		this.settings = settings;
 	}
-
-	@Override
-	public void windowDeiconified(java.awt.event.WindowEvent evt) {
-		resumeApp();
-	}
-
-	@Override
-	public void windowActivated(java.awt.event.WindowEvent evt) {
-		resumeApp();
-	}
-
-	@Override
-	public void windowDeactivated(java.awt.event.WindowEvent evt) {
-		pauseApp();
-	}
-
-	@Override
-	public void windowOpened(WindowEvent e) {}
-
-	@Override
-	public void windowClosed(WindowEvent e) {}
-
 }
