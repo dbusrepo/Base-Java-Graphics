@@ -91,6 +91,7 @@ class ApplicationFrame extends JFrame implements WindowListener {
 
 		reportCapabilities();
 
+		showCurrentMode();
 		//		setExtendedState(JFrame.MAXIMIZED_BOTH); // TODO
 		graphDevice.setFullScreenWindow(this); // switch on full-screen exclusive mode
 		enableInputMethods(false);
@@ -272,11 +273,11 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	void restoreScreen() {
 		setVisible(false); //you can't see me!
 		Window w = graphDevice.getFullScreenWindow();
-		if (w != null) {
-			w.dispose(); // destroy the JFrame object (this)
-		}
 		if (originalDisplayMode != null) {
 			graphDevice.setDisplayMode(originalDisplayMode);
+		}
+		if (w != null) {
+			w.dispose(); // destroy the JFrame object (this)
 		}
 		graphDevice.setFullScreenWindow(null);
 	}
