@@ -174,7 +174,7 @@ public class GraphicsApplication implements Runnable {
 	// https://stackoverflow.com/questions/13064607/fullscreen-swing-components-fail-to-receive-keyboard-input-on-java-7-on-mac-os-x
 	// https://stackoverflow.com/questions/19645243/keylistener-doesnt-work-after-dispose
 //	private void toggleFullscreen() {
-//		useFullScreen = !useFullScreen;
+//		getSettings().toggleFullscreen();
 //		setVisible(false);
 //		dispose();
 //		setUndecorated(useFullScreen);
@@ -182,7 +182,7 @@ public class GraphicsApplication implements Runnable {
 //		if (useFullScreen) {
 //			setExtendedState(JFrame.MAXIMIZED_BOTH);
 //			graphDevice.setFullScreenWindow(this);
-	// // originalDisplayMode reset?
+//	 // originalDisplayMode reset?
 //		} else {
 //			setExtendedState(JFrame.NORMAL);
 //			graphDevice.setFullScreenWindow(null);
@@ -200,6 +200,10 @@ public class GraphicsApplication implements Runnable {
 		inputManager.mapToKey(exitAction, KeyEvent.VK_ESCAPE);
 		inputManager.mapToKey(pauseAction, KeyEvent.VK_P);
 		inputManager.mapToKey(toggleFullscreenAction, KeyEvent.VK_F1);
+	}
+
+	InputManager getInputManager() {
+		return inputManager;
 	}
 
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
@@ -266,12 +270,18 @@ public class GraphicsApplication implements Runnable {
 	private void screenUpdate() {
 		// use active rendering
 		try {
-			Graphics2D gScr2d = (Graphics2D) bufferStrategy.getDrawGraphics();
-			appRender(gScr2d);
-			if (settings.debugInfo) {
-				drawDebugInfo(gScr2d);
+			Graphics2D gScr2d = null;
+			try {
+				gScr2d = (Graphics2D) bufferStrategy.getDrawGraphics();
+				appRender(gScr2d);
+				if (settings.debugInfo) {
+					drawDebugInfo(gScr2d);
+				}
 			}
-			gScr2d.dispose();
+			finally {
+				if (gScr2d != null) gScr2d.dispose();
+			}
+			// TODO ok here?
 			if (!bufferStrategy.contentsLost()) {
 				bufferStrategy.show();
 			} else {
@@ -326,11 +336,10 @@ public class GraphicsApplication implements Runnable {
 		if (exitAction.isPressed()) {
 			stopApp();
 		}
-		// TODO
-//		if (toggleFullscreenAction.isPressed()) {
-//			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
-//			toggleFullscreen();
-//		}
+		if (toggleFullscreenAction.isPressed()) {
+			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
+			applicationFrame.toggleFullscreen();
+		}
 		// ...
 	}
 
@@ -345,8 +354,8 @@ public class GraphicsApplication implements Runnable {
 		// System.out.println("finishOff");
 		if (!finishedOff) {
 			finishedOff = true;
-			printStats();
 			applicationFrame.restoreScreen(); // make sure we restore the video mode before exiting
+			printStats();
 			System.exit(0);
 		}
 	}

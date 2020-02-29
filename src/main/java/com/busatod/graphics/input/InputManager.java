@@ -20,6 +20,10 @@ public class InputManager implements KeyListener {
 	private Component comp;
 
 	public InputManager(Component comp) {
+		add2Component(comp);
+	}
+
+	public void add2Component(Component comp) {
 		this.comp = comp;
 		// register key and mouse listeners
 		comp.addKeyListener(this);
