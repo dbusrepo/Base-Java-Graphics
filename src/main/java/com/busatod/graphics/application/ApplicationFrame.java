@@ -155,12 +155,13 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	void restoreScreen() {
 		try {
 			setVisible(false); //you can't see me!
+			if (originalDisplayMode != null) {
+				graphDevice.setDisplayMode(originalDisplayMode);
+				originalDisplayMode = null;
+			}
 			Window w = graphDevice.getFullScreenWindow();
 			if (w != null) {
 				w.dispose(); // destroy the JFrame object (this)
-			}
-			if (originalDisplayMode != null) {
-				graphDevice.setDisplayMode(originalDisplayMode);
 			}
 		}
 		finally {
