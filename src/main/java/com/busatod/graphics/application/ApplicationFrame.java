@@ -1,7 +1,5 @@
 package com.busatod.graphics.application;
 
-import com.busatod.graphics.input.InputManager;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowEvent;
@@ -26,10 +24,21 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		this.graphApp = graphApp;
 		this.settings = graphApp.getSettings();
 		this.graphDevice = graphApp.getGraphDevice();
+
+		if (settings.showCapabilities) {
+			reportCapabilities();
+		}
+
 //		setDefaultLookAndFeelDecorated(true);
+		setTitle(settings.title); // TODO
+		addWindowListener(this);
+		initFrame();
+	}
+
+	private void initFrame() {
 		setUndecorated(settings.fullScreen); // no menu bar, borders, etc. or Swing components? // TODO
 		setIgnoreRepaint(true); // turn off all paint events since doing active rendering
-		setTitle(settings.title);
+		setExtendedState(JFrame.NORMAL);
 		initCanvas();
 		setResizable(false);
 		setVisible(true);
@@ -39,7 +48,6 @@ class ApplicationFrame extends JFrame implements WindowListener {
 			initFullScreen();
 		}
 		initBufferStrategy();
-		addWindowListener(this);
 	}
 
 	private void initCanvas() {
@@ -82,25 +90,82 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		bufferStrategy = canvas.getBufferStrategy();
 	}
 
-
 	private void initFullScreen() {
-		if (!graphDevice.isFullScreenSupported()) {
-			System.out.println("Full-screen exclusive mode not supported");
-			System.exit(0);
+		if (!graphDevice.isFullScreenSupported()) { // TODO spostare la print?
+			System.out.println("Full-screen mode not supported");
+			settings.fullScreen = false;
+//			System.exit(0);
+			return;
 		}
 
-		reportCapabilities();
+		enableFullScreen();
+	}
 
-		showCurrentMode();
-		//		setExtendedState(JFrame.MAXIMIZED_BOTH); // TODO
-		graphDevice.setFullScreenWindow(this); // switch on full-screen exclusive mode
+	private void enableFullScreen() {
+		setExtendedState(JFrame.MAXIMIZED_BOTH); // TODO
+		graphDevice.setFullScreenWindow(this);
 		enableInputMethods(false);
 
 		DisplayMode prevDisplayMode = graphDevice.getDisplayMode();
-		if (setDisplayMode()) {
+		if (setDisplayMode()) { // switch on full-screen exclusive mode
 			originalDisplayMode = prevDisplayMode;
 		}
+	}
 
+	void toggleFullscreen() {
+		if (!graphDevice.isFullScreenSupported()) {
+			return;
+		}
+		setVisible(false);
+		//getBufferStrategy().dispose();
+//		dispose();
+		if (settings.fullScreen) {
+			restoreScreen();
+		} else {
+			dispose();
+		}
+		settings.toggleFullscreen(); // toggle the flag...
+		initFrame();
+		graphApp.getInputManager().add2Component(getCanvas());
+//		if (settings.fullScreen) {
+//			setUndecorated(true);
+//			setLocationRelativeTo(null);
+//			enableFullScreen();
+//		} else {
+//			restoreScreen();
+//			setUndecorated(false);
+//			setExtendedState(JFrame.NORMAL);
+//			// HELP HERE !!!
+//			setIgnoreRepaint(true); // turn off all paint events since doing active rendering
+//			pack();
+////			initCanvas();
+//			setResizable(false);
+//
+////			graphDevice.setFullScreenWindow(null);
+//		}
+//		pack();
+//		setVisible(true);
+	}
+
+	// TODO
+	/**
+	 * Remove the window from the screen, if we are in full screen
+	 * mode then we need to reset the video mode.
+	 */
+	void restoreScreen() {
+		try {
+			setVisible(false); //you can't see me!
+			Window w = graphDevice.getFullScreenWindow();
+			if (w != null) {
+				w.dispose(); // destroy the JFrame object (this)
+			}
+			if (originalDisplayMode != null) {
+				graphDevice.setDisplayMode(originalDisplayMode);
+			}
+		}
+		finally {
+			graphDevice.setFullScreenWindow(null);
+		}
 	}
 
 	private boolean setDisplayMode() {
@@ -182,7 +247,7 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	 Returns the first compatible mode in a list of modes.
 	 Returns null if no modes are compatible.
 	 */
-	public DisplayMode findFirstCompatibleMode(DisplayMode modes[])
+	private DisplayMode findFirstCompatibleMode(DisplayMode modes[])
 	{
 		DisplayMode goodModes[] = graphDevice.getDisplayModes();
 		for (int i = 0; i < modes.length; i++) {
@@ -205,7 +270,7 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	 modes has a refresh rate of
 	 DisplayMode.REFRESH_RATE_UNKNOWN.
 	 */
-	public static boolean displayModesMatch(DisplayMode mode1,
+	private static boolean displayModesMatch(DisplayMode mode1,
 									 DisplayMode mode2)
 
 	{
@@ -244,11 +309,18 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		// Buffer Capabilities
 		BufferCapabilities bufferCaps = graphConfig.getBufferCapabilities();
 		System.out.println("Buffer Caps. isPageFlipping: " + bufferCaps.isPageFlipping());
-		System.out.println("Buffer Caps. Flip Contents: " +
-				getFlipText(bufferCaps.getFlipContents()));
-		System.out.println("Buffer Caps. Full-screen Required: " +
-				bufferCaps.isFullScreenRequired());
+		System.out.println("Buffer Caps. Flip Contents: " + getFlipText(bufferCaps.getFlipContents()));
+		System.out.println("Buffer Caps. Full-screen Required: " + bufferCaps.isFullScreenRequired());
 		System.out.println("Buffer Caps. MultiBuffers: " + bufferCaps.isMultiBufferAvailable());
+		System.out.println("Buffer Caps. MultiBuffers: " + bufferCaps.isMultiBufferAvailable());
+		// Front buffer caps
+		imageCaps = bufferCaps.getFrontBufferCapabilities();
+		System.out.println("Front buffer isAccelerated: " + imageCaps.isAccelerated() );
+		System.out.println("Front buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
+		// Back buffer caps
+		imageCaps = bufferCaps.getBackBufferCapabilities();
+		System.out.println("Back buffer isAccelerated: " + imageCaps.isAccelerated() );
+		System.out.println("Back buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
 	}
 
 	private String getFlipText(BufferCapabilities.FlipContents flip)
@@ -264,23 +336,6 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		else // if (flip == BufferCapabilities.FlipContents.COPIED)
 			return "Copied";
 	} // end of getFlipTest()
-
-	// TODO
-	/**
-	 * Remove the window from the screen, if we are in full screen
-	 * mode then we need to reset the video mode.
-	 */
-	void restoreScreen() {
-		setVisible(false); //you can't see me!
-		Window w = graphDevice.getFullScreenWindow();
-		if (originalDisplayMode != null) {
-			graphDevice.setDisplayMode(originalDisplayMode);
-		}
-		if (w != null) {
-			w.dispose(); // destroy the JFrame object (this)
-		}
-		graphDevice.setFullScreenWindow(null);
-	}
 
 	@Override
 	public void windowClosing(java.awt.event.WindowEvent evt) {
