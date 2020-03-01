@@ -17,7 +17,6 @@ class ApplicationFrame extends JFrame implements WindowListener {
 //	private final boolean debugInfo;
 	private Canvas canvas;
 	private BufferStrategy bufferStrategy;
-	private DisplayMode originalDisplayMode;
 
 	public ApplicationFrame(GraphicsApplication graphApp) {
 		super(graphApp.getGraphConfig());
@@ -51,10 +50,18 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	}
 
 	private void initCanvas() {
-		canvas = new Canvas();
-		canvas.setSize(settings.width, settings.height);
-		canvas.setBackground(Color.BLACK);
-		canvas.setIgnoreRepaint(true);
+//		if (canvas != null) {
+//			remove(canvas);
+//			if (canvas.getBufferStrategy() != null) {
+//				canvas.getBufferStrategy().dispose();
+//			}
+//		}
+		if (canvas == null) { // when toggling fullscreen canvas is not null...
+			canvas = new Canvas();
+			canvas.setSize(settings.width, settings.height);
+			canvas.setBackground(Color.BLACK);
+			canvas.setIgnoreRepaint(true);
+		}
 		add(canvas);
 		pack();
 	}
@@ -91,7 +98,7 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	}
 
 	private void initFullScreen() {
-		if (!graphDevice.isFullScreenSupported()) { // TODO spostare la print?
+		if (!graphDevice.isFullScreenSupported()) {
 			System.out.println("Full-screen mode not supported");
 			settings.fullScreen = false;
 //			System.exit(0);
@@ -106,45 +113,17 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		graphDevice.setFullScreenWindow(this);
 		enableInputMethods(false);
 
-		DisplayMode prevDisplayMode = graphDevice.getDisplayMode();
-		if (setDisplayMode()) { // switch on full-screen exclusive mode
-			originalDisplayMode = prevDisplayMode;
-		}
+		setDisplayMode(); // switch on full-screen exclusive mode
 	}
 
 	void toggleFullscreen() {
 		if (!graphDevice.isFullScreenSupported()) {
 			return;
 		}
-		setVisible(false);
-		//getBufferStrategy().dispose();
-//		dispose();
-		if (settings.fullScreen) {
-			restoreScreen();
-		} else {
-			dispose();
-		}
+		remove(canvas);
+		restoreScreen();
 		settings.toggleFullscreen(); // toggle the flag...
 		initFrame();
-		graphApp.getInputManager().add2Component(getCanvas());
-//		if (settings.fullScreen) {
-//			setUndecorated(true);
-//			setLocationRelativeTo(null);
-//			enableFullScreen();
-//		} else {
-//			restoreScreen();
-//			setUndecorated(false);
-//			setExtendedState(JFrame.NORMAL);
-//			// HELP HERE !!!
-//			setIgnoreRepaint(true); // turn off all paint events since doing active rendering
-//			pack();
-////			initCanvas();
-//			setResizable(false);
-//
-////			graphDevice.setFullScreenWindow(null);
-//		}
-//		pack();
-//		setVisible(true);
 	}
 
 	// TODO
@@ -153,20 +132,11 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	 * mode then we need to reset the video mode.
 	 */
 	void restoreScreen() {
-		try {
-			setVisible(false); //you can't see me!
-			if (originalDisplayMode != null) {
-				graphDevice.setDisplayMode(originalDisplayMode);
-				originalDisplayMode = null;
-			}
-			Window w = graphDevice.getFullScreenWindow();
-			if (w != null) {
-				w.dispose(); // destroy the JFrame object (this)
-			}
-		}
-		finally {
+		setVisible(false); //you can't see me!
+		if (graphDevice.getFullScreenWindow() != null) {
 			graphDevice.setFullScreenWindow(null);
 		}
+		dispose();
 	}
 
 	private boolean setDisplayMode() {
@@ -322,6 +292,7 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		imageCaps = bufferCaps.getBackBufferCapabilities();
 		System.out.println("Back buffer isAccelerated: " + imageCaps.isAccelerated() );
 		System.out.println("Back buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
+
 	}
 
 	private String getFlipText(BufferCapabilities.FlipContents flip)

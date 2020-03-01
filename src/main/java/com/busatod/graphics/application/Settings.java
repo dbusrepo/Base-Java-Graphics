@@ -6,7 +6,7 @@ public class Settings {
 	static final int HEIGHT = 768;
 	static final int NUM_BUFFERS = 3;
 	static final int BIT_DEPTH = 32;
-	static final int TARGET_FPS = 100;
+	static final int TARGET_FPS = 1000;
 
 	public String title = TITLE;
 	public int width = WIDTH;

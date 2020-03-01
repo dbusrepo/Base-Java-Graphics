@@ -56,6 +56,7 @@ atlassian-ide-plugin.xml
 # Logs and databases #
 ######################
 *.log
+log.txt
 
 # gradle stuff
 .gradle/

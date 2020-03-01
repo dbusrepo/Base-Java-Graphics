@@ -46,7 +46,7 @@ public class GraphicsApplication implements Runnable {
 	private ApplicationFrame applicationFrame;
 	private final GraphicsDevice graphDevice;
 	private final GraphicsConfiguration graphConfig;
-	private BufferStrategy bufferStrategy;
+//	private BufferStrategy bufferStrategy;
 
 	protected Thread renderThread = null;
 
@@ -96,7 +96,6 @@ public class GraphicsApplication implements Runnable {
 		this.graphConfig = graphDevice.getDefaultConfiguration();
 
 		this.applicationFrame = new ApplicationFrame(this);
-		this.bufferStrategy = this.applicationFrame.getBufferStrategy(); // cached
 		// initialise timing elements
 
 		this.fpsStore = new double[NUM_AVG_FPS];
@@ -123,31 +122,6 @@ public class GraphicsApplication implements Runnable {
 		start();
 	}
 
-//	private void initFullScreen() {
-////			if (!GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().isFullScreenSupported()) {
-//////			if (!getGraphicsConfiguration().getDevice().isFullScreenSupported()) {
-//		if (!graphDevice.isFullScreenSupported()) {
-//			System.out.println("Full-screen exclusive mode not supported");
-//			System.exit(0);
-//		}
-//
-//		setExtendedState(JFrame.MAXIMIZED_BOTH);
-//		graphDevice.setFullScreenWindow(this); // switch on full-screen exclusive mode
-//
-//		// we can now adjust the display modes, if we wish
-////		showCurrentMode();
-//
-//		// setDisplayMode(800, 600, 8);   // or try 8 bits
-//		// setDisplayMode(1280, 1024, 32);
-//
-////		reportCapabilities();
-//
-////		pWidth = getBounds().width;
-////		pHeight = getBounds().height;
-////
-////		setBufferStrategy();
-//	}  // end of initFullScreen()
-
 	protected class ShutDownThread extends Thread {
 		@Override
 		public void run() {
@@ -168,29 +142,6 @@ public class GraphicsApplication implements Runnable {
 			renderThread.start();
 		}
 	}
-
-	// TODO move to appFrame
-	// going to fullscreen:
-	// https://stackoverflow.com/questions/13064607/fullscreen-swing-components-fail-to-receive-keyboard-input-on-java-7-on-mac-os-x
-	// https://stackoverflow.com/questions/19645243/keylistener-doesnt-work-after-dispose
-//	private void toggleFullscreen() {
-//		getSettings().toggleFullscreen();
-//		setVisible(false);
-//		dispose();
-//		setUndecorated(useFullScreen);
-//		graphDevice = getGraphicsConfiguration().getDevice();
-//		if (useFullScreen) {
-//			setExtendedState(JFrame.MAXIMIZED_BOTH);
-//			graphDevice.setFullScreenWindow(this);
-//	 // originalDisplayMode reset?
-//		} else {
-//			setExtendedState(JFrame.NORMAL);
-//			graphDevice.setFullScreenWindow(null);
-//		}
-//		adjustWinSize();
-//		setVisible(true);
-////			setLocationRelativeTo(null); // problem..it moves the window to the first screen
-//	}
 
 	private void initInputManager() {
 		inputManager = new InputManager(applicationFrame.getCanvas());
@@ -270,6 +221,7 @@ public class GraphicsApplication implements Runnable {
 	private void screenUpdate() {
 		// use active rendering
 		try {
+			BufferStrategy bufferStrategy = applicationFrame.getBufferStrategy();
 			Graphics2D gScr2d = null;
 			try {
 				gScr2d = (Graphics2D) bufferStrategy.getDrawGraphics();
@@ -332,13 +284,14 @@ public class GraphicsApplication implements Runnable {
 	private void checkSystemInput() {
 		if (pauseAction.isPressed()) {
 			isPaused = !isPaused;
-		}
+	}
 		if (exitAction.isPressed()) {
 			stopApp();
 		}
 		if (toggleFullscreenAction.isPressed()) {
 			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
 			applicationFrame.toggleFullscreen();
+			getInputManager().add2Component(applicationFrame.getCanvas()); // TODO move?
 		}
 		// ...
 	}
