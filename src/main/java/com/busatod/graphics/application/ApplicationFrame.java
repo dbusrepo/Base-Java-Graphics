@@ -50,18 +50,16 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	}
 
 	private void initCanvas() {
-//		if (canvas != null) {
-//			remove(canvas);
-//			if (canvas.getBufferStrategy() != null) {
-//				canvas.getBufferStrategy().dispose();
-//			}
-//		}
-		if (canvas == null) { // when toggling fullscreen canvas is not null...
-			canvas = new Canvas();
-			canvas.setSize(settings.width, settings.height);
-			canvas.setBackground(Color.BLACK);
-			canvas.setIgnoreRepaint(true);
+		if (canvas != null) {
+			remove(canvas);
+			if (canvas.getBufferStrategy() != null) {
+				canvas.getBufferStrategy().dispose();
+			}
 		}
+		canvas = new Canvas();
+		canvas.setSize(settings.width, settings.height);
+		canvas.setBackground(Color.BLACK);
+		canvas.setIgnoreRepaint(true);
 		add(canvas);
 		pack();
 	}
@@ -120,7 +118,6 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		if (!graphDevice.isFullScreenSupported()) {
 			return;
 		}
-		remove(canvas);
 		restoreScreen();
 		settings.toggleFullscreen(); // toggle the flag...
 		initFrame();
