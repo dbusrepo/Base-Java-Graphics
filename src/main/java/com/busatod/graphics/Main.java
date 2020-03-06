@@ -1,7 +1,7 @@
 package com.busatod.graphics;
 
-import java.util.Map;
-import com.busatod.graphics.application.*;
+import com.busatod.graphics.application.GraphicsApplication;
+import com.busatod.graphics.application.Settings;
 
 public class Main {
 

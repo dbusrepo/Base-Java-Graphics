@@ -4,19 +4,17 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.awt.image.BufferStrategy;
+import java.text.DecimalFormat;
 
 class ApplicationFrame extends JFrame implements WindowListener {
 
 	private final GraphicsApplication graphApp;
 	private final Settings settings;
-	private final GraphicsDevice graphDevice; // cached
-	//	private final int width;
-//	private final int height;
-//	private final boolean fullScreen;
-//	private final boolean debugInfo;
+	private final GraphicsDevice graphDevice;
+	private int accelMemory; // for reporting accl. memory usage
 	private Canvas canvas;
-	private BufferStrategy bufferStrategy;
+	//	private BufferStrategy bufferStrategy;
+	private DecimalFormat df = new DecimalFormat("0.##");  // 2 dp
 
 	public ApplicationFrame(GraphicsApplication graphApp) {
 		super(graphApp.getGraphConfig());
@@ -71,7 +69,7 @@ class ApplicationFrame extends JFrame implements WindowListener {
 
 		 The use of invokeAndWait() is to avoid a possible deadlock
 		 with the event dispatcher thread. Should be fixed in J2SE 1.5
-
+`
 		 createBufferStrategy) is an asynchronous operation, so sleep
 		 a bit so that the getBufferStrategy() call will get the
 		 correct details.
@@ -90,9 +88,6 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		try {  // sleep to give time for the buffer strategy to be carried out
 			Thread.sleep(500);  // 0.5 sec
 		} catch (InterruptedException ex) {}
-
-		// Cache the buffer strategy
-		bufferStrategy = canvas.getBufferStrategy();
 	}
 
 	private void initFullScreen() {
@@ -268,10 +263,18 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	}
 
 	private void reportCapabilities() {
-		// Image Capabilities
+
+		accelMemory = graphDevice.getAvailableAcceleratedMemory();
+		System.out.println("Initial Acc. Mem.: " +
+				df.format(((double) accelMemory) / (1024 * 1024)) + " MB");
+
 		GraphicsConfiguration graphConfig = graphApp.getGraphConfig();
+
+		System.out.println("Color model: " + graphConfig.getColorModel());
+		System.out.println("Graphics device: " + graphConfig.getDevice());
+
 		ImageCapabilities imageCaps = graphConfig.getImageCapabilities();
-		System.out.println("Image Caps. isAccelerated: " + imageCaps.isAccelerated() );
+		System.out.println("Image Caps. isAccelerated: " + imageCaps.isAccelerated());
 		System.out.println("Image Caps. isTrueVolatile: " + imageCaps.isTrueVolatile());
 
 		// Buffer Capabilities
@@ -341,9 +344,21 @@ class ApplicationFrame extends JFrame implements WindowListener {
 		return canvas;
 	}
 
-	@Override
-	public BufferStrategy getBufferStrategy() {
-		return bufferStrategy;
-	}
+	void reportAccelMemory()
+	// report any change in the amount of accelerated memory
+	{
+		int mem = graphDevice.getAvailableAcceleratedMemory();   // in bytes
+		int memChange = mem - accelMemory;
 
+		if (memChange != 0) {
+			System.out.println("Acc. Mem: " +
+					df.format(((double) accelMemory) / (1024 * 1024)) + " MB; Change: " +
+					df.format(((double) memChange) / 1024) + " K");
+		}
+		accelMemory = mem;
+	}  // end of reportAcceleMemory()
+
+	void drawOnCanvas() {
+
+	}
 }

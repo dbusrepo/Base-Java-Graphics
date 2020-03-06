@@ -13,9 +13,9 @@ public class Settings {
 	public int height = HEIGHT;
 	public int bitDepth = BIT_DEPTH;
 	public boolean fullScreen = false;
-	public boolean debugInfo = true;
 	public int numBuffers = NUM_BUFFERS;
 	public int targetFps = TARGET_FPS;
+	public boolean showDebugInfo = true;
 	public boolean showCapabilities = true;
 
 	public void toggleFullscreen() {
