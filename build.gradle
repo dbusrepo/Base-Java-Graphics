@@ -16,13 +16,20 @@ sourceSets {
     }
 }
 
+dependencies {
+    implementation 'info.picocli:picocli:4.2.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
 mainClassName = 'com.busatod.graphics.Main'
 
 jar {
-  manifest {
-    attributes(
-      'Main-Class': mainClassName
-    )
-  }
+    manifest {
+        attributes(
+                'Main-Class': mainClassName
+        )
+    }
 }
-
