@@ -41,7 +41,7 @@ public class GraphicsApplication implements Runnable {
 	private static int MAX_FRAME_SKIPS = 5;
 
 	// number of FPS values stored to get an average
-	private static int NUM_AVG_FPS = 1;
+	private static int NUM_AVG_FPS = 20;
 
 	/******************************************************************************************************************/
 
@@ -183,7 +183,7 @@ public class GraphicsApplication implements Runnable {
 		while (isRunning) {
 			// update
 			update(0); // TODO fix/change arg 0?
-			screenUpdate();
+			draw();
 
 			afterTime = System.nanoTime();
 			timeDiff = afterTime - beforeTime;
@@ -226,7 +226,7 @@ public class GraphicsApplication implements Runnable {
 		finishOff();
 	}
 
-	private void screenUpdate() {
+	private void draw() {
 		// use active rendering
 		try {
 			Canvas canvas = applicationFrame.getCanvas();
@@ -234,7 +234,7 @@ public class GraphicsApplication implements Runnable {
 			Graphics2D g2d = null;
 			try {
 				g2d = (Graphics2D) bufferStrategy.getDrawGraphics();
-				updateView(); // TODO
+				updateView(); // TODO game render on bufferedImage here
 				g2d.drawImage(bufferedImage, 0, 0, canvas.getWidth(), canvas.getHeight(), null);
 				if (settings.showDebugInfo) {
 					drawDebugInfo(g2d);
