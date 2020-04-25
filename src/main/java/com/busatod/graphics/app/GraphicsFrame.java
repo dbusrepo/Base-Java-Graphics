@@ -1,4 +1,4 @@
-package com.busatod.graphics.application;
+package com.busatod.graphics.app;
 
 import javax.swing.*;
 import java.awt.*;
@@ -6,7 +6,7 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.text.DecimalFormat;
 
-class ApplicationFrame extends JFrame implements WindowListener {
+class GraphicsFrame extends JFrame implements WindowListener {
 
 	private final GraphicsApplication graphApp;
 	private final Settings settings;
@@ -16,7 +16,7 @@ class ApplicationFrame extends JFrame implements WindowListener {
 	//	private BufferStrategy bufferStrategy;
 	private DecimalFormat df = new DecimalFormat("0.##");  // 2 dp
 
-	public ApplicationFrame(GraphicsApplication graphApp) {
+	public GraphicsFrame(GraphicsApplication graphApp) {
 		super(graphApp.getGraphConfig());
 		this.graphApp = graphApp;
 		this.settings = graphApp.getSettings();

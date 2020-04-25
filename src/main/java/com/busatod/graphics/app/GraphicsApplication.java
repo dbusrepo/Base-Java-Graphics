@@ -1,4 +1,4 @@
-package com.busatod.graphics.application;
+package com.busatod.graphics.app;
 
 import com.busatod.graphics.input.InputAction;
 import com.busatod.graphics.input.InputManager;
@@ -7,8 +7,8 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.text.DecimalFormat;
-import java.util.Random;
 
 // vedere:
 // https://stackoverflow.com/questions/35516191/what-is-the-correct-way-to-use-createbufferstrategy
@@ -28,7 +28,7 @@ public class GraphicsApplication implements Runnable {
 	private static final int FONT_SIZE = 20;
 	private static final String FONT_NAME = "SansSerif";
 
-	private static long MAX_STATS_INTERVAL = NANO_IN_SEC; // in ns, 1sec
+	private static long UPDATE_STATS_INTERVAL = NANO_IN_SEC; // in ns, 1sec
 	// private static long MAX_STATS_INTERVAL = 1000L;
 	// record stats every 1 second (roughly)X
 
@@ -47,13 +47,14 @@ public class GraphicsApplication implements Runnable {
 
 	private Settings settings;
 
-	private ApplicationFrame applicationFrame;
+	private GraphicsFrame graphicsFrame;
 	private final GraphicsDevice graphDevice;
 	private final GraphicsConfiguration graphConfig;
 
 	protected Thread renderThread = null;
 
 	protected BufferedImage bufferedImage;
+	protected int[] buffer;
 
 	private volatile boolean isRunning = false;
 	private boolean appOver = false;
@@ -67,7 +68,7 @@ public class GraphicsApplication implements Runnable {
 	private long statsInterval = 0L; // ns
 	private long prevStatsTime;
 	private long totalElapsedTime = 0L;
-	private long timeSpentInApp = 0; // seconds
+	private long totalTimeSpent = 0; // seconds
 
 	private long frameCount = 0;
 	private double fpsStore[];
@@ -99,13 +100,12 @@ public class GraphicsApplication implements Runnable {
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
 		this.graphConfig = graphDevice.getDefaultConfiguration();
 
-		this.applicationFrame = new ApplicationFrame(this);
+		this.graphicsFrame = new GraphicsFrame(this);
 
-		this.bufferedImage = new BufferedImage(settings.width, settings.height,
-				BufferedImage.TYPE_INT_RGB);
+		this.bufferedImage = new BufferedImage(settings.width, settings.height, BufferedImage.TYPE_INT_RGB);
+		this.buffer = ((DataBufferInt) this.bufferedImage.getRaster().getDataBuffer()).getData();
 
 		// initialise timing elements
-
 		this.fpsStore = new double[NUM_AVG_FPS];
 		this.upsStore = new double[NUM_AVG_FPS];
 		for (int i = 0; i < NUM_AVG_FPS; i++) {
@@ -116,7 +116,7 @@ public class GraphicsApplication implements Runnable {
 		this.period = NANO_IN_SEC / settings.targetFps;
 
 		this.font = new Font(FONT_NAME, Font.BOLD, FONT_SIZE);
-		this.metrics = applicationFrame.getCanvas().getFontMetrics(this.font);
+		this.metrics = graphicsFrame.getCanvas().getFontMetrics(this.font);
 
 		// create app components
 		// TODO APP_HOOK
@@ -152,7 +152,7 @@ public class GraphicsApplication implements Runnable {
 	}
 
 	private void initInputManager() {
-		inputManager = new InputManager(applicationFrame.getCanvas());
+		inputManager = new InputManager(graphicsFrame.getCanvas());
 		exitAction = new InputAction("Exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		pauseAction = new InputAction("Pause", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		toggleFullscreenAction = new InputAction("Toogle Fullscreen", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
@@ -183,7 +183,7 @@ public class GraphicsApplication implements Runnable {
 		while (isRunning) {
 			// update
 			update(0); // TODO fix/change arg 0?
-			draw();
+			render();
 
 			afterTime = System.nanoTime();
 			timeDiff = afterTime - beforeTime;
@@ -226,19 +226,17 @@ public class GraphicsApplication implements Runnable {
 		finishOff();
 	}
 
-	private void draw() {
+	private void render() {
 		// use active rendering
 		try {
-			Canvas canvas = applicationFrame.getCanvas();
+			Canvas canvas = graphicsFrame.getCanvas();
 			BufferStrategy bufferStrategy = canvas.getBufferStrategy();
 			Graphics2D g2d = null;
 			try {
 				g2d = (Graphics2D) bufferStrategy.getDrawGraphics();
-				updateView(); // TODO game render on bufferedImage here
+				draw(); // TODO game render on bufferedImage here
 				g2d.drawImage(bufferedImage, 0, 0, canvas.getWidth(), canvas.getHeight(), null);
-				if (settings.showDebugInfo) {
-					drawDebugInfo(g2d);
-				}
+				printRenderingInfo(g2d);
 			} finally {
 				if (g2d != null) g2d.dispose();
 			}
@@ -258,43 +256,47 @@ public class GraphicsApplication implements Runnable {
 	}
 
 	// TODO APP_HOOK
-	protected void drawDebugInfo(Graphics2D g) {
-		g.setFont(font);
-		g.setColor(Color.YELLOW);
-		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-//		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
-		String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
-		g.drawString(debugInfo, 2, metrics.getHeight());  // was (10,55)
+	protected void printRenderingInfo(Graphics2D g) {
+		if (settings.printRenderingInfo) {
+			g.setFont(font);
+			g.setColor(Color.YELLOW);
+			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			//		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
+			String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
+			g.drawString(debugInfo, 2, metrics.getHeight());  // was (10,55)
+		}
 	}
 
 	// TODO APP_HOOK
-	protected void updateView() {
-		// fill back buffer
-		Graphics2D gBuffer = (Graphics2D) bufferedImage.getGraphics();
-		gBuffer.setColor(Color.BLACK);
-		gBuffer.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+	protected void draw() {
 
-		Random rand = new Random();
-		gBuffer.setColor(Color.red);
-		int w = bufferedImage.getWidth();
-		int h = bufferedImage.getHeight();
-		for (int i = 0; i <= 1000; i++) {
-			int x0 = Math.abs(rand.nextInt()) % w;
-			int y0 = Math.abs(rand.nextInt()) % h;
-			int x1 = Math.abs(rand.nextInt()) % w;
-			int y1 = Math.abs(rand.nextInt()) % h;
-			gBuffer.drawLine(x0, y0, x1, y1);
-		}
-		// Note: render only if (!isPaused && !appOver) ? // see section Inefficient Pausing https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
 	}
+//		// fill back buffer
+//		Graphics2D gBuffer = (Graphics2D) bufferedImage.getGraphics();
+//		gBuffer.setColor(Color.BLACK);
+//		gBuffer.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+//
+//		Random rand = new Random();
+//		gBuffer.setColor(Color.red);
+//		int w = bufferedImage.getWidth();
+//		int h = bufferedImage.getHeight();
+//		for (int i = 0; i <= 1000; i++) {
+//			int x0 = Math.abs(rand.nextInt()) % w;
+//			int y0 = Math.abs(rand.nextInt()) % h;
+//			int x1 = Math.abs(rand.nextInt()) % w;
+//			int y1 = Math.abs(rand.nextInt()) % h;
+//			gBuffer.drawLine(x0, y0, x1, y1);
+//		}
+//		// Note: render only if (!isPaused && !appOver) ? // see section Inefficient Pausing https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
+//	}
 
 	// TODO APP_HOOK update logic
 	protected void updateState(long elapsedTime) {
 	}
 
 	private void update(long elapsedTime) {
-		if (getSettings().showDebugInfo) {
-			applicationFrame.reportAccelMemory();
+		if (getSettings().printRenderingInfo) {
+			graphicsFrame.reportAccelMemory();
 		}
 		checkSystemInput(); // check input that can happen whether paused or not
 		if (canUpdateState()) {
@@ -316,8 +318,8 @@ public class GraphicsApplication implements Runnable {
 		}
 		if (toggleFullscreenAction.isPressed()) {
 			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
-			applicationFrame.toggleFullscreen();
-			getInputManager().add2Component(applicationFrame.getCanvas()); // TODO move?
+			graphicsFrame.toggleFullscreen();
+			getInputManager().add2Component(graphicsFrame.getCanvas()); // TODO move?
 		}
 		// ...
 	}
@@ -333,8 +335,8 @@ public class GraphicsApplication implements Runnable {
 		// System.out.println("finishOff");
 		if (!finishedOff) {
 			finishedOff = true;
-			applicationFrame.restoreScreen(); // make sure we restore the video mode before exiting
-			printStats();
+			graphicsFrame.restoreScreen(); // make sure we restore the video mode before exiting
+			printFinalStats();
 			System.exit(0);
 		}
 	}
@@ -358,9 +360,9 @@ public class GraphicsApplication implements Runnable {
 	private void updateStats() {
 		frameCount++;
 		statsInterval += period;
-		if (statsInterval >= MAX_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
+		if (statsInterval >= UPDATE_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
 			long timeNow = System.nanoTime();
-			timeSpentInApp = (timeNow - startTime) / NANO_IN_SEC;  // ns --> secs
+			totalTimeSpent = (timeNow - startTime) / NANO_IN_SEC;  // ns --> secs
 
 			long realElapsedTime = timeNow - prevStatsTime;   // time since last stats collection
 			totalElapsedTime += realElapsedTime;
@@ -410,12 +412,12 @@ public class GraphicsApplication implements Runnable {
 		}
 	}
 
-	private void printStats() {
+	private void printFinalStats() {
 		System.out.flush();
 		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
-		System.out.println("Time Spent: " + timeSpentInApp + " secs");
+		System.out.println("Time Spent: " + totalTimeSpent + " secs");
 		// TODO invoke app logic print stats?? APP_HOOK
 		System.out.flush();
 //		System.err.flush();

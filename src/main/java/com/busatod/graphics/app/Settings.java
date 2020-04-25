@@ -1,4 +1,4 @@
-package com.busatod.graphics.application;
+package com.busatod.graphics.app;
 
 public class Settings {
 	static final String TITLE = "Java Graphics";
@@ -6,7 +6,7 @@ public class Settings {
 	static final int HEIGHT = 768;
 	static final int NUM_BUFFERS = 3;
 	static final int BIT_DEPTH = 32;
-	static final int TARGET_FPS = 1000;
+	static final int TARGET_FPS = 60;
 
 	public String title = TITLE;
 	public int width = WIDTH;
@@ -15,7 +15,7 @@ public class Settings {
 	public boolean fullScreen = false;
 	public int numBuffers = NUM_BUFFERS;
 	public int targetFps = TARGET_FPS;
-	public boolean showDebugInfo = true;
+	public boolean printRenderingInfo = true;
 	public boolean showCapabilities = true;
 
 	public void toggleFullscreen() {

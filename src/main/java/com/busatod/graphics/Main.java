@@ -1,7 +1,7 @@
 package com.busatod.graphics;
 
-import com.busatod.graphics.application.GraphicsApplication;
-import com.busatod.graphics.application.Settings;
+import com.busatod.graphics.app.GraphicsApplication;
+import com.busatod.graphics.app.Settings;
 
 public class Main {
 
