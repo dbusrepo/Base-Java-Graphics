@@ -221,7 +221,7 @@ public class GraphicsApplication implements Runnable {
 			}
 			framesSkipped += skips;
 
-			storeStats();
+			updateStats();
 		}
 		finishOff();
 	}
@@ -355,7 +355,7 @@ public class GraphicsApplication implements Runnable {
 
     	The data is collected every MAX_STATS_INTERVAL  (1 sec).
     */
-	private void storeStats() {
+	private void updateStats() {
 		frameCount++;
 		statsInterval += period;
 		if (statsInterval >= MAX_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
