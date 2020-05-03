@@ -41,7 +41,7 @@ public class GraphicsApplication implements Runnable {
 	private static int MAX_FRAME_SKIPS = 5;
 
 	// number of FPS values stored to get an average
-	private static int NUM_AVG_FPS = 20;
+	private static int NUM_AVG_FPS = 10;
 
 	/******************************************************************************************************************/
 
@@ -271,7 +271,22 @@ public class GraphicsApplication implements Runnable {
 
 	// TODO APP_HOOK
 	protected void draw() {
+		int redRgb = Color.RED.getRGB();
+//		int height = bufferedImage.getHeight();
+//		int width = bufferedImage.getWidth();
+//		for (int y = 0; y != height; ++y) {
+//			for (int x = 0; x != width; ++x) {
+//				bufferedImage.setRGB(x, y, redRgb);
+//			}
+//		}
 
+//		int numPixels = bufferedImage.getWidth() * bufferedImage.getHeight();
+//		for (int c = numPixels, i = 0; c != 0; --c) {
+//			buffer[i++] = redRgb;
+//		}
+		// or this...
+//		for (int i = 0; i != numPixels; ++i)
+//			buffer[i] = redRgb;
 	}
 //		// fill back buffer
 //		Graphics2D gBuffer = (Graphics2D) bufferedImage.getGraphics();
