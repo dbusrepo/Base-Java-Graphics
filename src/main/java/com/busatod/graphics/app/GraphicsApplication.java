@@ -153,12 +153,14 @@ public class GraphicsApplication implements Runnable {
 
 	private void initInputManager() {
 		inputManager = new InputManager(graphicsFrame.getCanvas());
+//		inputManager.setRelativeMouseMode(true);
+//		inputManager.setCursor(InputManager.INVISIBLE_CURSOR); // TODO mouse non resta invisible quando si passa in fullscreen?
 		exitAction = new InputAction("Exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		pauseAction = new InputAction("Pause", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		toggleFullscreenAction = new InputAction("Toogle Fullscreen", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
-		inputManager.mapToKey(exitAction, KeyEvent.VK_ESCAPE);
-		inputManager.mapToKey(pauseAction, KeyEvent.VK_P);
-		inputManager.mapToKey(toggleFullscreenAction, KeyEvent.VK_F1);
+		inputManager.mapToKey(KeyEvent.VK_ESCAPE, exitAction);
+		inputManager.mapToKey(KeyEvent.VK_P, pauseAction);
+		inputManager.mapToKey(KeyEvent.VK_F1, toggleFullscreenAction);
 	}
 
 	InputManager getInputManager() {
