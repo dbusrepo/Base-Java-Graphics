@@ -18,7 +18,7 @@ import java.text.DecimalFormat;
 // refactoring main..
 // logic app class
 // see reader comments about the book chapters on the book website
-// vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen in generale
+// vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen
 
 public class GraphicsApplication implements Runnable {
 
@@ -46,6 +46,7 @@ public class GraphicsApplication implements Runnable {
 	/******************************************************************************************************************/
 
 	private Settings settings;
+	private IAppLogic appLogic;
 
 	private GraphicsFrame graphicsFrame;
 	private final GraphicsDevice graphDevice;
@@ -91,9 +92,10 @@ public class GraphicsApplication implements Runnable {
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
 
-	public GraphicsApplication(Settings settings) {
+	public GraphicsApplication(Settings settings, IAppLogic appLogic) {
 
 		this.settings = settings;
+		this.appLogic = appLogic;
 
 		// Acquiring the current graphics device and graphics configuration
 		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
@@ -102,7 +104,7 @@ public class GraphicsApplication implements Runnable {
 
 		this.graphicsFrame = new GraphicsFrame(this);
 
-		this.bufferedImage = new BufferedImage(settings.width, settings.height, BufferedImage.TYPE_INT_RGB);
+		this.bufferedImage = new BufferedImage(this.settings.width, this.settings.height, BufferedImage.TYPE_INT_RGB);
 		this.buffer = ((DataBufferInt) this.bufferedImage.getRaster().getDataBuffer()).getData();
 
 		// initialise timing elements
@@ -113,15 +115,14 @@ public class GraphicsApplication implements Runnable {
 			upsStore[i] = 0.0;
 		}
 
-		this.period = NANO_IN_SEC / settings.targetFps;
+		this.period = NANO_IN_SEC / this.settings.targetFps;
 
 		this.font = new Font(FONT_NAME, Font.BOLD, FONT_SIZE);
 		this.metrics = graphicsFrame.getCanvas().getFontMetrics(this.font);
 
-		// create app components
-		// TODO APP_HOOK
-
 		initInputManager();
+
+		appLogic.init();
 
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
@@ -130,7 +131,11 @@ public class GraphicsApplication implements Runnable {
 		start();
 	}
 
-	protected class ShutDownThread extends Thread {
+	public Settings getSettings() {
+		return settings;
+	}
+
+	private class ShutDownThread extends Thread {
 		@Override
 		public void run() {
 //			super.run();
@@ -139,8 +144,7 @@ public class GraphicsApplication implements Runnable {
 		}
 	}
 
-	// TODO APP_HOOK
-	protected Thread buildShutdownThread() {
+	private Thread buildShutdownThread() {
 		return new ShutDownThread();
 	}
 
@@ -151,6 +155,7 @@ public class GraphicsApplication implements Runnable {
 		}
 	}
 
+	// TODO APP HOOK ?
 	private void initInputManager() {
 		inputManager = new InputManager(graphicsFrame.getCanvas());
 //		inputManager.setRelativeMouseMode(true);
@@ -163,9 +168,9 @@ public class GraphicsApplication implements Runnable {
 		inputManager.mapToKey(KeyEvent.VK_F1, toggleFullscreenAction);
 	}
 
-	InputManager getInputManager() {
-		return inputManager;
-	}
+//	InputManager getInputManager() {
+//		return inputManager;
+//	}
 
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
 	public void run() {
@@ -236,9 +241,10 @@ public class GraphicsApplication implements Runnable {
 			Graphics2D g2d = null;
 			try {
 				g2d = (Graphics2D) bufferStrategy.getDrawGraphics();
-				draw(); // TODO game render on bufferedImage here
+				draw(); // draw on buffered image frame
+				// blit
 				g2d.drawImage(bufferedImage, 0, 0, canvas.getWidth(), canvas.getHeight(), null);
-				printRenderingInfo(g2d);
+				showStats(g2d);
 			} finally {
 				if (g2d != null) g2d.dispose();
 			}
@@ -257,9 +263,9 @@ public class GraphicsApplication implements Runnable {
 		}
 	}
 
-	// TODO APP_HOOK
-	protected void printRenderingInfo(Graphics2D g) {
-		if (settings.printRenderingInfo) {
+	protected void showStats(Graphics2D g) {
+//		appLogic.showStats(); 	// TODO APP_HOOK
+		if (settings.showFps) {
 			g.setFont(font);
 			g.setColor(Color.YELLOW);
 			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -269,50 +275,16 @@ public class GraphicsApplication implements Runnable {
 		}
 	}
 
-	// TODO APP_HOOK
-	protected void draw() {
-		int redRgb = Color.RED.getRGB();
-//		int height = bufferedImage.getHeight();
-//		int width = bufferedImage.getWidth();
-//		for (int y = 0; y != height; ++y) {
-//			for (int x = 0; x != width; ++x) {
-//				bufferedImage.setRGB(x, y, redRgb);
-//			}
-//		}
-
-//		int numPixels = bufferedImage.getWidth() * bufferedImage.getHeight();
-//		for (int c = numPixels, i = 0; c != 0; --c) {
-//			buffer[i++] = redRgb;
-//		}
-		// or this...
-//		for (int i = 0; i != numPixels; ++i)
-//			buffer[i] = redRgb;
+	private void draw() {
+		appLogic.draw();
 	}
-//		// fill back buffer
-//		Graphics2D gBuffer = (Graphics2D) bufferedImage.getGraphics();
-//		gBuffer.setColor(Color.BLACK);
-//		gBuffer.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
-//
-//		Random rand = new Random();
-//		gBuffer.setColor(Color.red);
-//		int w = bufferedImage.getWidth();
-//		int h = bufferedImage.getHeight();
-//		for (int i = 0; i <= 1000; i++) {
-//			int x0 = Math.abs(rand.nextInt()) % w;
-//			int y0 = Math.abs(rand.nextInt()) % h;
-//			int x1 = Math.abs(rand.nextInt()) % w;
-//			int y1 = Math.abs(rand.nextInt()) % h;
-//			gBuffer.drawLine(x0, y0, x1, y1);
-//		}
-//		// Note: render only if (!isPaused && !appOver) ? // see section Inefficient Pausing https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
-//	}
 
-	// TODO APP_HOOK update logic
-	protected void updateState(long elapsedTime) {
+	private boolean canUpdateState() {
+		return !isPaused && !appOver;
 	}
 
 	private void update(long elapsedTime) {
-		if (getSettings().printRenderingInfo) {
+		if (settings.showFps) {
 			graphicsFrame.reportAccelMemory();
 		}
 		checkSystemInput(); // check input that can happen whether paused or not
@@ -321,8 +293,8 @@ public class GraphicsApplication implements Runnable {
 		}
 	}
 
-	private boolean canUpdateState() {
-		return !isPaused && !appOver;
+	private void updateState(long elapsedTime) {
+		appLogic.update(elapsedTime);
 	}
 
 	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
@@ -336,7 +308,7 @@ public class GraphicsApplication implements Runnable {
 		if (toggleFullscreenAction.isPressed()) {
 			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
 			graphicsFrame.toggleFullscreen();
-			getInputManager().add2Component(graphicsFrame.getCanvas()); // TODO move?
+			inputManager.add2Component(graphicsFrame.getCanvas()); // TODO move?
 		}
 		// ...
 	}
@@ -353,6 +325,7 @@ public class GraphicsApplication implements Runnable {
 		if (!finishedOff) {
 			finishedOff = true;
 			graphicsFrame.restoreScreen(); // make sure we restore the video mode before exiting
+			appLogic.finish();
 			printFinalStats();
 			System.exit(0);
 		}
@@ -435,7 +408,7 @@ public class GraphicsApplication implements Runnable {
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
 		System.out.println("Time Spent: " + totalTimeSpent + " secs");
-		// TODO invoke app logic print stats?? APP_HOOK
+		appLogic.printFinalStats();
 		System.out.flush();
 //		System.err.flush();
 	}
@@ -449,14 +422,6 @@ public class GraphicsApplication implements Runnable {
 	// called when the JFrame is closing
 	public void stopApp() { isRunning = false; }
 
-	public Settings getSettings() {
-		return settings;
-	}
-
-	public void setSettings(Settings settings) {
-		this.settings = settings;
-	}
-
 	public GraphicsDevice getGraphDevice() {
 		return graphDevice;
 	}
@@ -466,3 +431,40 @@ public class GraphicsApplication implements Runnable {
 	}
 
 }
+
+//	protected void draw() {
+////		int redRgb = Color.RED.getRGB();
+////		int height = bufferedImage.getHeight();
+////		int width = bufferedImage.getWidth();
+////		for (int y = 0; y != height; ++y) {
+////			for (int x = 0; x != width; ++x) {
+////				bufferedImage.setRGB(x, y, redRgb);
+////			}
+////		}
+//
+////		int numPixels = bufferedImage.getWidth() * bufferedImage.getHeight();
+////		for (int c = numPixels, i = 0; c != 0; --c) {
+////			buffer[i++] = redRgb;
+////		}
+//		// or this...
+////		for (int i = 0; i != numPixels; ++i)
+////			buffer[i] = redRgb;
+//	}
+//		// fill back buffer
+//		Graphics2D gBuffer = (Graphics2D) bufferedImage.getGraphics();
+//		gBuffer.setColor(Color.BLACK);
+//		gBuffer.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+//
+//		Random rand = new Random();
+//		gBuffer.setColor(Color.red);
+//		int w = bufferedImage.getWidth();
+//		int h = bufferedImage.getHeight();
+//		for (int i = 0; i <= 1000; i++) {
+//			int x0 = Math.abs(rand.nextInt()) % w;
+//			int y0 = Math.abs(rand.nextInt()) % h;
+//			int x1 = Math.abs(rand.nextInt()) % w;
+//			int y1 = Math.abs(rand.nextInt()) % h;
+//			gBuffer.drawLine(x0, y0, x1, y1);
+//		}
+//		// Note: render only if (!isPaused && !appOver) ? // see section Inefficient Pausing https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
+//	}
