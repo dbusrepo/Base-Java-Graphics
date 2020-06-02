@@ -2,7 +2,7 @@ package com.busatod.graphics._apps.image_loader;
 
 import com.busatod.graphics.app.GraphicsApplication;
 import com.busatod.graphics.app.Settings;
-import com.busatod.graphics.input.InputAction;
+import com.busatod.graphics.app.input.InputAction;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -49,7 +49,31 @@ public class ImageLoader extends GraphicsApplication {
 
 	@Override
 	protected void appDraw() {
+		Graphics2D gBuffer = (Graphics2D) bufferedImage.getGraphics();
+		gBuffer.drawImage(im, 0, 0, null);
 
+//		int[] imageBuffer = ((DataBufferInt) im.getRaster().getDataBuffer()).getData();
+//		int image_offset = 0;
+//		int buffer_offset = 0;
+//		for (int y = 0; y != im.getHeight(); ++y) {
+//			System.arraycopy(imageBuffer, image_offset, buffer, buffer_offset, im.getWidth());
+//			image_offset += im.getWidth();
+//			buffer_offset += bufferedImage.getWidth();
+//		}
+
+//		int[] imageBuffer = ((DataBufferInt) im.getRaster().getDataBuffer()).getData();
+//		int image_offset = 0;
+//		int buffer_offset = 0;
+//		int image_width = im.getWidth();
+//		for (int y = 0; y != im.getHeight(); ++y) {
+//			int p_b = buffer_offset;
+//			int p_i = image_offset;
+//			for (int x = image_width; x != 0; --x) {
+//				buffer[p_b++] = imageBuffer[p_i++];
+//			}
+//			image_offset += im.getWidth();
+//			buffer_offset += bufferedImage.getWidth();
+//		}
 	}
 
 	@Override

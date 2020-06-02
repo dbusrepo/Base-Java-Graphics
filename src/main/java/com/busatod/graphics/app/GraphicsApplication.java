@@ -1,7 +1,7 @@
 package com.busatod.graphics.app;
 
-import com.busatod.graphics.input.InputAction;
-import com.busatod.graphics.input.InputManager;
+import com.busatod.graphics.app.input.InputAction;
+import com.busatod.graphics.app.input.InputManager;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -108,8 +108,7 @@ public abstract class GraphicsApplication implements Runnable {
 
 		this.graphicsFrame = new GraphicsFrame(this);
 
-		this.bufferedImage = new BufferedImage(this.settings.width, this.settings.height, BufferedImage.TYPE_INT_RGB);
-		this.buffer = ((DataBufferInt) this.bufferedImage.getRaster().getDataBuffer()).getData();
+		initFrameBufferedImage();
 
 		// initialise timing elements
 		this.fpsStore = new double[NUM_AVG_FPS];
@@ -135,6 +134,11 @@ public abstract class GraphicsApplication implements Runnable {
 
 //		// start the app
 		startThread();
+	}
+
+	private void initFrameBufferedImage() {
+		this.bufferedImage = new BufferedImage(this.settings.width, this.settings.height, BufferedImage.TYPE_INT_RGB);
+		this.buffer = ((DataBufferInt) this.bufferedImage.getRaster().getDataBuffer()).getData();
 	}
 
 	Settings getSettings() {
@@ -272,6 +276,36 @@ public abstract class GraphicsApplication implements Runnable {
 		finishOff();
 	}
 
+	private void update(long elapsedTime) {
+		if (settings.showFps) {
+			graphicsFrame.reportAccelMemory();
+		}
+		checkSystemInput(); // check input that can happen whether paused or not
+		if (canUpdateState()) {
+			updateState(elapsedTime);
+		}
+	}
+
+	private void updateState(long elapsedTime) {
+		appUpdate(elapsedTime);
+	}
+
+	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
+	protected void checkSystemInput() {
+		if (pauseAction.isPressed()) {
+			isPaused = !isPaused;
+		}
+		if (exitAction.isPressed()) {
+			stopApp();
+		}
+		if (toggleFullscreenAction.isPressed()) {
+			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
+			graphicsFrame.toggleFullscreen();
+			inputManager.add2Component(graphicsFrame.getCanvas()); // TODO move?
+		}
+		// ...
+	}
+
 	private void render() {
 		// use active rendering
 		try {
@@ -302,6 +336,10 @@ public abstract class GraphicsApplication implements Runnable {
 		}
 	}
 
+	private void draw() {
+		appDraw();
+	}
+
 	protected void showStats(Graphics2D g) {
 //		appLogic.showStats(); 	// TODO APP_HOOK
 		if (settings.showFps) {
@@ -314,42 +352,8 @@ public abstract class GraphicsApplication implements Runnable {
 		}
 	}
 
-	private void draw() {
-		appDraw();
-	}
-
 	private boolean canUpdateState() {
 		return !isPaused && !appOver;
-	}
-
-	private void update(long elapsedTime) {
-		if (settings.showFps) {
-			graphicsFrame.reportAccelMemory();
-		}
-		checkSystemInput(); // check input that can happen whether paused or not
-		if (canUpdateState()) {
-			updateState(elapsedTime);
-		}
-	}
-
-	private void updateState(long elapsedTime) {
-		appUpdate(elapsedTime);
-	}
-
-	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
-	protected void checkSystemInput() {
-		if (pauseAction.isPressed()) {
-			isPaused = !isPaused;
-		}
-		if (exitAction.isPressed()) {
-			stopApp();
-		}
-		if (toggleFullscreenAction.isPressed()) {
-			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
-			graphicsFrame.toggleFullscreen();
-			inputManager.add2Component(graphicsFrame.getCanvas()); // TODO move?
-		}
-		// ...
 	}
 
 	/* Tasks to do before terminating. Called at end of run()
