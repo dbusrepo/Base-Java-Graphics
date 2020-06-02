@@ -17,7 +17,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 	private DecimalFormat df = new DecimalFormat("0.##");  // 2 dp
 
 	public GraphicsFrame(GraphicsApplication graphApp) {
-		super(graphApp.getGraphConfig());
+		super(graphApp.getGraphicsConfiguration());
 		this.graphApp = graphApp;
 		this.settings = graphApp.getSettings();
 		this.graphDevice = graphApp.getGraphDevice();
@@ -38,7 +38,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		setExtendedState(JFrame.NORMAL);
 		initCanvas();
 		setResizable(false);
-		setVisible(true);
+//		setVisible(true); // done in graphics app
 		setLocationRelativeTo(null); // called after setVisible(true); to center the window (first screen only?)
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		if (settings.fullScreen) {
@@ -268,7 +268,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		System.out.println("Initial Acc. Mem.: " +
 				df.format(((double) accelMemory) / (1024 * 1024)) + " MB");
 
-		GraphicsConfiguration graphConfig = graphApp.getGraphConfig();
+		GraphicsConfiguration graphConfig = graphApp.getGraphicsConfiguration();
 
 		System.out.println("Color model: " + graphConfig.getColorModel());
 		System.out.println("Graphics device: " + graphConfig.getDevice());

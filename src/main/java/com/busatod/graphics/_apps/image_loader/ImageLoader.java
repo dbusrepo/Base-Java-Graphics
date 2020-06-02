@@ -4,11 +4,17 @@ import com.busatod.graphics.app.GraphicsApplication;
 import com.busatod.graphics.app.Settings;
 import com.busatod.graphics.input.InputAction;
 
+import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 
 public class ImageLoader extends GraphicsApplication {
 
+	private final static String IMAGE_DIR = "/image_loader/pics"; // relativo a /resources
+	private final static String FILE_NAME = "img0.jpg";
+
 	private InputAction exitAction;
+	private BufferedImage im;
 
 	public static void main(String[] args) {
 		new ImageLoader();
@@ -21,6 +27,9 @@ public class ImageLoader extends GraphicsApplication {
 
 	@Override
 	protected void appInit() {
+		// load the image
+		im = loadImage(IMAGE_DIR + "/" + FILE_NAME);
+		// input init
 		exitAction = new InputAction("Exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		inputManager.mapToKey(KeyEvent.VK_Q, exitAction);
 	}
@@ -41,6 +50,11 @@ public class ImageLoader extends GraphicsApplication {
 	@Override
 	protected void appDraw() {
 
+	}
+
+	@Override
+	protected void showStats(Graphics2D g) {
+		super.showStats(g);
 	}
 
 	@Override

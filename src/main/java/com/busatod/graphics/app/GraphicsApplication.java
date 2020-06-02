@@ -3,11 +3,13 @@ package com.busatod.graphics.app;
 import com.busatod.graphics.input.InputAction;
 import com.busatod.graphics.input.InputManager;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.net.URL;
 import java.text.DecimalFormat;
 
 // vedere:
@@ -49,7 +51,7 @@ public abstract class GraphicsApplication implements Runnable {
 
 	private GraphicsFrame graphicsFrame;
 	private GraphicsDevice graphDevice;
-	private GraphicsConfiguration graphConfig;
+	private GraphicsConfiguration gc;
 
 	private Thread renderThread = null;
 
@@ -102,7 +104,7 @@ public abstract class GraphicsApplication implements Runnable {
 		// Acquiring the current graphics device and graphics configuration
 		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
-		this.graphConfig = graphDevice.getDefaultConfiguration();
+		this.gc = graphDevice.getDefaultConfiguration();
 
 		this.graphicsFrame = new GraphicsFrame(this);
 
@@ -128,6 +130,8 @@ public abstract class GraphicsApplication implements Runnable {
 
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
+
+		this.graphicsFrame.setVisible(true);
 
 //		// start the app
 		startThread();
@@ -173,6 +177,38 @@ public abstract class GraphicsApplication implements Runnable {
 //	public InputManager getInputManager() {
 //		return inputManager;
 //	}
+
+	// vedi ImagesLoader.java Chap6 code KJGP
+	public BufferedImage loadImage(String fnm)
+   /* Load the image from <fnm>, returning it as a BufferedImage
+      which is compatible with the graphics device being used.
+      Uses ImageIO.
+   */ {
+		try {
+			URL resource = getClass().getResource(fnm);
+			BufferedImage im = ImageIO.read(resource);
+			// An image returned from ImageIO in J2SE <= 1.4.2 is
+			// _not_ a managed image, but is after copying!
+
+			int transparency = im.getColorModel().getTransparency();
+			BufferedImage copy = gc.createCompatibleImage(
+					im.getWidth(), im.getHeight(),
+					transparency);
+			// create a graphics context
+			Graphics2D g2d = copy.createGraphics();
+			// g2d.setComposite(AlphaComposite.Src);
+
+			// reportTransparency(IMAGE_DIR + fnm, transparency);
+
+			// copy image
+			g2d.drawImage(im, 0, 0, null);
+			g2d.dispose();
+			return copy;
+		} catch (Exception e) {
+			System.err.println("Load Image error for " + fnm + ":\n" + e);
+			return null;
+		}
+	} // end of loadImage() using ImageIO
 
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
 	@Override
@@ -429,8 +465,8 @@ public abstract class GraphicsApplication implements Runnable {
 		return graphDevice;
 	}
 
-	public GraphicsConfiguration getGraphConfig() {
-		return graphConfig;
+	public GraphicsConfiguration getGraphicsConfiguration() {
+		return gc;
 	}
 
 	/* SPECIFIC APP LOGIC */
