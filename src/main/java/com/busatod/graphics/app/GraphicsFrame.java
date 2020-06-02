@@ -264,6 +264,9 @@ class GraphicsFrame extends JFrame implements WindowListener {
 
 	private void reportCapabilities() {
 
+		System.out.println();
+		System.out.println("SYS CAPABILITIES:");
+
 		accelMemory = graphDevice.getAvailableAcceleratedMemory();
 		System.out.println("Initial Acc. Mem.: " +
 				df.format(((double) accelMemory) / (1024 * 1024)) + " MB");
@@ -286,13 +289,14 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		System.out.println("Buffer Caps. MultiBuffers: " + bufferCaps.isMultiBufferAvailable());
 		// Front buffer caps
 		imageCaps = bufferCaps.getFrontBufferCapabilities();
-		System.out.println("Front buffer isAccelerated: " + imageCaps.isAccelerated() );
+		System.out.println("Front buffer isAccelerated: " + imageCaps.isAccelerated());
 		System.out.println("Front buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
 		// Back buffer caps
 		imageCaps = bufferCaps.getBackBufferCapabilities();
-		System.out.println("Back buffer isAccelerated: " + imageCaps.isAccelerated() );
+		System.out.println("Back buffer isAccelerated: " + imageCaps.isAccelerated());
 		System.out.println("Back buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
-
+		System.out.println();
+		System.out.flush();
 	}
 
 	private String getFlipText(BufferCapabilities.FlipContents flip)

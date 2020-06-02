@@ -9,6 +9,7 @@ import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.io.File;
 import java.net.URL;
 import java.text.DecimalFormat;
 
@@ -92,7 +93,7 @@ public abstract class GraphicsApplication implements Runnable {
 	/******************************************************************************************************************/
 
 	protected InputManager inputManager;
-	protected BufferedImage bufferedImage;
+	protected BufferedImage bufferImage;
 	protected int[] buffer;
 
 	public GraphicsApplication() {}
@@ -137,8 +138,11 @@ public abstract class GraphicsApplication implements Runnable {
 	}
 
 	private void initFrameBufferedImage() {
-		this.bufferedImage = new BufferedImage(this.settings.width, this.settings.height, BufferedImage.TYPE_INT_RGB);
-		this.buffer = ((DataBufferInt) this.bufferedImage.getRaster().getDataBuffer()).getData();
+		// TYPE_INT_ARGB, 4 bytes per pixel with alpha channel
+		// TYPE_INT_RGB, 4 bytes per pixel without alpha channel
+		// see https://stackoverflow.com/questions/32414617/how-to-decide-which-bufferedimage-image-type-to-use
+		this.bufferImage = new BufferedImage(this.settings.width, this.settings.height, BufferedImage.TYPE_INT_ARGB);
+		this.buffer = ((DataBufferInt) this.bufferImage.getRaster().getDataBuffer()).getData();
 	}
 
 	Settings getSettings() {
@@ -189,30 +193,57 @@ public abstract class GraphicsApplication implements Runnable {
       Uses ImageIO.
    */ {
 		try {
-			URL resource = getClass().getResource(fnm);
-			BufferedImage im = ImageIO.read(resource);
+			/**********************************************************/
+//			URL resource = getClass().getResource(fnm);
+//			BufferedImage im = ImageIO.read(resource);
 			// An image returned from ImageIO in J2SE <= 1.4.2 is
 			// _not_ a managed image, but is after copying!
+//			int transparency = im.getColorModel().getTransparency();
+//			BufferedImage copy = gc.createCompatibleImage(
+//					im.getWidth(), im.getHeight(),
+//					transparency);
+//			// create a graphics context
+//			Graphics2D g2d = copy.createGraphics();
+//			// g2d.setComposite(AlphaComposite.Src);
+//
+//			// reportTransparency(IMAGE_DIR + fnm, transparency);
+//
+//			// copy image
+//			g2d.drawImage(im, 0, 0, null);
+//			g2d.dispose();
+//			return copy;
+			/**********************************************************/
 
-			int transparency = im.getColorModel().getTransparency();
-			BufferedImage copy = gc.createCompatibleImage(
-					im.getWidth(), im.getHeight(),
-					transparency);
-			// create a graphics context
-			Graphics2D g2d = copy.createGraphics();
-			// g2d.setComposite(AlphaComposite.Src);
-
-			// reportTransparency(IMAGE_DIR + fnm, transparency);
-
-			// copy image
-			g2d.drawImage(im, 0, 0, null);
-			g2d.dispose();
-			return copy;
-		} catch (Exception e) {
-			System.err.println("Load Image error for " + fnm + ":\n" + e);
+			URL resource = getClass().getResource(fnm);
+			BufferedImage im = ImageIO.read(resource);
+			// convert the image to ARGB
+			// see https://stackoverflow.com/questions/27457517/how-to-change-the-image-type-of-a-bufferedimage-which-is-loaded-from-file
+			if (im.getType() != bufferImage.getType()) {
+				BufferedImage im2 = new BufferedImage(im.getWidth(), im.getHeight(), bufferImage.getType());
+				Graphics2D g = im2.createGraphics();
+				g.drawImage(im, 0, 0, im.getWidth(), im.getHeight(), null);
+				g.dispose();
+				im = im2;
+			}
+			return im;
+		} catch (Exception ex) {
+			System.err.println("Load Image error for " + fnm + ":\n" + ex);
 			return null;
 		}
 	} // end of loadImage() using ImageIO
+
+	public void writeImage(BufferedImage bi, String fnm, String format) {
+		String imageFile = fnm + "." + format;
+		try {
+			File outFile = new File(imageFile);
+			if (!ImageIO.write(bi, format, outFile)) {
+				throw new Exception("Unexpected error writing image");
+			}
+			System.out.println("File " + imageFile + " written.");
+		} catch (Exception ex) {
+			System.err.println("Write Image error for " + imageFile + ":\n" + ex);
+		}
+	}
 
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
 	@Override
@@ -316,7 +347,7 @@ public abstract class GraphicsApplication implements Runnable {
 				g2d = (Graphics2D) bufferStrategy.getDrawGraphics();
 				draw(); // draw on buffered image frame
 				// blit
-				g2d.drawImage(bufferedImage, 0, 0, canvas.getWidth(), canvas.getHeight(), null);
+				g2d.drawImage(bufferImage, 0, 0, canvas.getWidth(), canvas.getHeight(), null);
 				showStats(g2d);
 			} finally {
 				if (g2d != null) g2d.dispose();
@@ -446,7 +477,8 @@ public abstract class GraphicsApplication implements Runnable {
 	}
 
 	private void printFinalStats() {
-		System.out.flush();
+		System.out.println();
+		System.out.println("FINAL STATS:");
 		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
@@ -475,11 +507,15 @@ public abstract class GraphicsApplication implements Runnable {
 
 	/* SPECIFIC APP LOGIC */
 
+	protected void appDraw() {
+		Graphics2D gBuffer = (Graphics2D) bufferImage.getGraphics();
+		gBuffer.setColor(Color.BLACK);
+		gBuffer.fillRect(0, 0, bufferImage.getWidth(), bufferImage.getHeight());
+	}
+
 	protected abstract void appInit();
 
 	protected abstract void appUpdate(long elapsedTime);
-
-	protected abstract void appDraw();
 
 	protected abstract void appFinishOff();
 
