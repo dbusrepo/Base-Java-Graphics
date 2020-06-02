@@ -20,7 +20,7 @@ import java.text.DecimalFormat;
 // see reader comments about the book chapters on the book website
 // vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen
 
-public class GraphicsApplication implements Runnable {
+public abstract class GraphicsApplication implements Runnable {
 
 	private static final long NANO_IN_MILLI = 1000000L;
 	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
@@ -46,16 +46,12 @@ public class GraphicsApplication implements Runnable {
 	/******************************************************************************************************************/
 
 	private Settings settings;
-	private IAppLogic appLogic;
 
 	private GraphicsFrame graphicsFrame;
-	private final GraphicsDevice graphDevice;
-	private final GraphicsConfiguration graphConfig;
+	private GraphicsDevice graphDevice;
+	private GraphicsConfiguration graphConfig;
 
-	protected Thread renderThread = null;
-
-	protected BufferedImage bufferedImage;
-	protected int[] buffer;
+	private Thread renderThread = null;
 
 	private volatile boolean isRunning = false;
 	private boolean appOver = false;
@@ -87,15 +83,21 @@ public class GraphicsApplication implements Runnable {
 	private Font font;
 	private FontMetrics metrics;
 
-	private InputManager inputManager;
 	private InputAction exitAction;
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
 
-	public GraphicsApplication(Settings settings, IAppLogic appLogic) {
+	/******************************************************************************************************************/
+
+	protected InputManager inputManager;
+	protected BufferedImage bufferedImage;
+	protected int[] buffer;
+
+	public GraphicsApplication() {}
+
+	public void start(Settings settings) {
 
 		this.settings = settings;
-		this.appLogic = appLogic;
 
 		// Acquiring the current graphics device and graphics configuration
 		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
@@ -122,16 +124,16 @@ public class GraphicsApplication implements Runnable {
 
 		initInputManager();
 
-		appLogic.init();
+		appInit();
 
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
 
-		// start the app
-		start();
+//		// start the app
+		startThread();
 	}
 
-	public Settings getSettings() {
+	Settings getSettings() {
 		return settings;
 	}
 
@@ -144,15 +146,15 @@ public class GraphicsApplication implements Runnable {
 		}
 	}
 
-	private Thread buildShutdownThread() {
-		return new ShutDownThread();
-	}
-
-	private void start() {
+	private void startThread() {
 		if (renderThread == null || !isRunning) {
 			renderThread = new Thread(this);
 			renderThread.start();
 		}
+	}
+
+	private Thread buildShutdownThread() {
+		return new ShutDownThread();
 	}
 
 	// TODO APP HOOK ?
@@ -168,12 +170,13 @@ public class GraphicsApplication implements Runnable {
 		inputManager.mapToKey(KeyEvent.VK_F1, toggleFullscreenAction);
 	}
 
-//	InputManager getInputManager() {
+//	public InputManager getInputManager() {
 //		return inputManager;
 //	}
 
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
-	public void run() {
+	@Override
+	public void run() { // thread run method
 
 		long beforeTime, afterTime, timeDiff, sleepTime; // times are in ns
 		long overSleepTime = 0L;
@@ -276,7 +279,7 @@ public class GraphicsApplication implements Runnable {
 	}
 
 	private void draw() {
-		appLogic.draw();
+		appDraw();
 	}
 
 	private boolean canUpdateState() {
@@ -294,11 +297,11 @@ public class GraphicsApplication implements Runnable {
 	}
 
 	private void updateState(long elapsedTime) {
-		appLogic.update(elapsedTime);
+		appUpdate(elapsedTime);
 	}
 
 	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
-	private void checkSystemInput() {
+	protected void checkSystemInput() {
 		if (pauseAction.isPressed()) {
 			isPaused = !isPaused;
 		}
@@ -325,7 +328,7 @@ public class GraphicsApplication implements Runnable {
 		if (!finishedOff) {
 			finishedOff = true;
 			graphicsFrame.restoreScreen(); // make sure we restore the video mode before exiting
-			appLogic.finish();
+			appFinishOff();
 			printFinalStats();
 			System.exit(0);
 		}
@@ -408,7 +411,7 @@ public class GraphicsApplication implements Runnable {
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
 		System.out.println("Time Spent: " + totalTimeSpent + " secs");
-		appLogic.printFinalStats();
+		appPrintFinalStats();
 		System.out.flush();
 //		System.err.flush();
 	}
@@ -429,6 +432,18 @@ public class GraphicsApplication implements Runnable {
 	public GraphicsConfiguration getGraphConfig() {
 		return graphConfig;
 	}
+
+	/* SPECIFIC APP LOGIC */
+
+	protected abstract void appInit();
+
+	protected abstract void appUpdate(long elapsedTime);
+
+	protected abstract void appDraw();
+
+	protected abstract void appFinishOff();
+
+	protected abstract void appPrintFinalStats();
 
 }
 
