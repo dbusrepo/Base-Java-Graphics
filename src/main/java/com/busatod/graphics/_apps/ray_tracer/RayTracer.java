@@ -1,5 +1,6 @@
 package com.busatod.graphics._apps.ray_tracer;
 
+import com.busatod.graphics._apps.ray_tracer.worlds.World;
 import com.busatod.graphics.app.GraphicsApplication;
 import com.busatod.graphics.app.Settings;
 

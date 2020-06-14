@@ -1,7 +1,8 @@
-package com.busatod.graphics._apps.ray_tracer;
+package com.busatod.graphics._apps.ray_tracer.worlds;
 
 import com.busatod.graphics._apps.ray_tracer.geometric_objects.GeometricObject;
 import com.busatod.graphics._apps.ray_tracer.tracers.Tracer;
+import com.busatod.graphics._apps.ray_tracer.utilities.*;
 
 import java.util.List;
 

@@ -1,4 +1,6 @@
-package com.busatod.graphics._apps.ray_tracer;
+package com.busatod.graphics._apps.ray_tracer.utilities;
+
+import com.busatod.graphics._apps.ray_tracer.worlds.World;
 
 public class ShadeRec
 {

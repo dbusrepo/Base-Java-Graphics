@@ -1,8 +1,8 @@
 package com.busatod.graphics._apps.ray_tracer.geometric_objects;
 
-import com.busatod.graphics._apps.ray_tracer.RGBColor;
-import com.busatod.graphics._apps.ray_tracer.Ray;
-import com.busatod.graphics._apps.ray_tracer.ShadeRec;
+import com.busatod.graphics._apps.ray_tracer.utilities.RGBColor;
+import com.busatod.graphics._apps.ray_tracer.utilities.Ray;
+import com.busatod.graphics._apps.ray_tracer.utilities.ShadeRec;
 
 public abstract class GeometricObject
 {

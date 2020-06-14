@@ -1,9 +1,9 @@
 package com.busatod.graphics._apps.ray_tracer.geometric_objects;
 
-import com.busatod.graphics._apps.ray_tracer.Normal;
-import com.busatod.graphics._apps.ray_tracer.Point3D;
-import com.busatod.graphics._apps.ray_tracer.Ray;
-import com.busatod.graphics._apps.ray_tracer.Vector3D;
+import com.busatod.graphics._apps.ray_tracer.utilities.Normal;
+import com.busatod.graphics._apps.ray_tracer.utilities.Point3D;
+import com.busatod.graphics._apps.ray_tracer.utilities.Ray;
+import com.busatod.graphics._apps.ray_tracer.utilities.Vector3D;
 
 public class Sphere extends GeometricObject
 {

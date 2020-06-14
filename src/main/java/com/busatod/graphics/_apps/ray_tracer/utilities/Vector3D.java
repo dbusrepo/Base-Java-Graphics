@@ -1,4 +1,4 @@
-package com.busatod.graphics._apps.ray_tracer;
+package com.busatod.graphics._apps.ray_tracer.utilities;
 
 public class Vector3D
 {

@@ -1,13 +1,12 @@
-package com.busatod.graphics._apps.ray_tracer;
+package com.busatod.graphics._apps.ray_tracer.utilities;
 
 public class ViewPlane
 {
 	int   hres;                                       // horizontal image resolution
 	int   vres;                                       // vertical image resolution
-	float s;                                        // pixel size
-	
-	private float gamma;                                    // gamma correction factor
-	private float inv_gamma;                                // the inverse of the gamma correction factor
+	float s;                                          // pixel size
+	private float gamma;                              // gamma correction factor
+	private float inv_gamma;                          // the inverse of the gamma correction factor
 	
 	public ViewPlane()
 	{
