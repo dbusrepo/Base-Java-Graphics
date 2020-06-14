@@ -23,11 +23,9 @@ class GraphicsFrame extends JFrame implements WindowListener
 		this.graphApp = graphApp;
 		this.settings = graphApp.getSettings();
 		this.graphDevice = graphApp.getGraphDevice();
-		
 		if (settings.showCapabilities) {
 			reportCapabilities();
 		}
-
 //		setDefaultLookAndFeelDecorated(true);
 		setTitle(settings.title); // TODO
 		addWindowListener(this);
@@ -39,7 +37,9 @@ class GraphicsFrame extends JFrame implements WindowListener
 		System.out.println("Modes");
 		for (int i = 0; i < modes.length; i++) {
 			System.out.print("(" + displayModePrintStr(modes[i]) + ")  ");
-			if ((i + 1) % 4 == 0) { System.out.println(); }
+			if ((i + 1) % 4 == 0) {
+				System.out.println();
+			}
 		}
 		System.out.println();
 	}
@@ -63,19 +63,16 @@ class GraphicsFrame extends JFrame implements WindowListener
 	 */
 	private static boolean displayModesMatch(DisplayMode mode1,
 											 DisplayMode mode2)
-	
 	{
 		if (mode1.getWidth() != mode2.getWidth() ||
 				mode1.getHeight() != mode2.getHeight()) {
 			return false;
 		}
-		
 		if (mode1.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI &&
 				mode2.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI &&
 				mode1.getBitDepth() != mode2.getBitDepth()) {
 			return false;
 		}
-		
 		return mode1.getRefreshRate() == DisplayMode.REFRESH_RATE_UNKNOWN ||
 				mode2.getRefreshRate() == DisplayMode.REFRESH_RATE_UNKNOWN ||
 				mode1.getRefreshRate() == mode2.getRefreshRate();
@@ -139,14 +136,12 @@ class GraphicsFrame extends JFrame implements WindowListener
 			System.out.println("Error while creating buffer strategy");
 			System.exit(0);
 		}
-		
 		try {  // sleep to give time for the buffer strategy to be carried out
 			Thread.sleep(500);  // 0.5 sec
 		}
 		catch (InterruptedException ex) {
 		}
 	}
-	
 	// TODO
 	
 	private void initFullScreen()
@@ -157,7 +152,6 @@ class GraphicsFrame extends JFrame implements WindowListener
 //			System.exit(0);
 			return;
 		}
-		
 		enableFullScreen();
 	}
 	
@@ -166,7 +160,6 @@ class GraphicsFrame extends JFrame implements WindowListener
 		setExtendedState(JFrame.MAXIMIZED_BOTH); // TODO
 		graphDevice.setFullScreenWindow(this);
 		enableInputMethods(false);
-		
 		setDisplayMode(); // switch on full-screen exclusive mode
 	}
 	
@@ -199,9 +192,7 @@ class GraphicsFrame extends JFrame implements WindowListener
 			System.out.println("Display mode changing not supported");
 			return false;
 		}
-		
 		DisplayMode dm = new DisplayMode(settings.width, settings.height, settings.bitDepth, DisplayMode.REFRESH_RATE_UNKNOWN);   // any refresh rate
-		
 		if (!isDisplayModeAvailable(dm)) {
 			System.out.println("Display mode (" + settings.width + "," +
 					settings.height + "," + settings.bitDepth + ") not available. Finding the first compatible:");
@@ -211,7 +202,6 @@ class GraphicsFrame extends JFrame implements WindowListener
 				return false;
 			}
 		}
-		
 		try {
 			graphDevice.setDisplayMode(dm);
 			System.out.println("Display mode set to: (" + dm.getWidth() + "," +
@@ -222,13 +212,11 @@ class GraphicsFrame extends JFrame implements WindowListener
 					dm.getHeight() + "," + dm.getBitDepth() + ")");
 			return false;
 		}
-		
 		try {  // sleep to give time for the display to be changed
 			Thread.sleep(1000);  // 1 sec
 		}
 		catch (InterruptedException ex) {
 		}
-		
 		return true;
 	}
 	
@@ -239,7 +227,6 @@ class GraphicsFrame extends JFrame implements WindowListener
 	{
 		DisplayMode[] modes = graphDevice.getDisplayModes();
 		showModes(modes);
-		
 		for (int i = 0; i < modes.length; i++) {
 			if (displayModesMatch(modes[i], dm)) {
 				return true;
@@ -273,23 +260,17 @@ class GraphicsFrame extends JFrame implements WindowListener
 	
 	private void reportCapabilities()
 	{
-		
 		System.out.println();
 		System.out.println("SYS CAPABILITIES:");
-		
 		accelMemory = graphDevice.getAvailableAcceleratedMemory();
 		System.out.println("Initial Acc. Mem.: " +
 				df.format(((double) accelMemory) / (1024 * 1024)) + " MB");
-		
 		GraphicsConfiguration graphConfig = graphApp.getGraphicsConfiguration();
-		
 		System.out.println("Color model: " + graphConfig.getColorModel());
 		System.out.println("Graphics device: " + graphConfig.getDevice());
-		
 		ImageCapabilities imageCaps = graphConfig.getImageCapabilities();
 		System.out.println("Image Caps. isAccelerated: " + imageCaps.isAccelerated());
 		System.out.println("Image Caps. isTrueVolatile: " + imageCaps.isTrueVolatile());
-		
 		// Buffer Capabilities
 		BufferCapabilities bufferCaps = graphConfig.getBufferCapabilities();
 		System.out.println("Buffer Caps. isPageFlipping: " + bufferCaps.isPageFlipping());
@@ -311,14 +292,18 @@ class GraphicsFrame extends JFrame implements WindowListener
 	
 	private String getFlipText(BufferCapabilities.FlipContents flip)
 	{
-		if (flip == null) { return "false"; } else if (flip == BufferCapabilities.FlipContents.UNDEFINED) {
+		if (flip == null) {
+			return "false";
+		} else if (flip == BufferCapabilities.FlipContents.UNDEFINED) {
 			return "Undefined";
 		} else if (flip == BufferCapabilities.FlipContents.BACKGROUND) {
 			return "Background";
 		} else if (flip == BufferCapabilities.FlipContents.PRIOR) {
 			return "Prior";
 		} else // if (flip == BufferCapabilities.FlipContents.COPIED)
-		{ return "Copied"; }
+		{
+			return "Copied";
+		}
 	} // end of getFlipTest()
 	
 	@Override
@@ -371,7 +356,6 @@ class GraphicsFrame extends JFrame implements WindowListener
 	{
 		int mem = graphDevice.getAvailableAcceleratedMemory();   // in bytes
 		int memChange = mem - accelMemory;
-		
 		if (memChange != 0) {
 			System.out.println("Acc. Mem: " +
 					df.format(((double) accelMemory) / (1024 * 1024)) + " MB; Change: " +
@@ -382,6 +366,5 @@ class GraphicsFrame extends JFrame implements WindowListener
 	
 	void drawOnCanvas()
 	{
-	
 	}
 }

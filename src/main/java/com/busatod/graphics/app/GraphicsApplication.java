@@ -12,10 +12,8 @@ import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.net.URL;
 import java.text.DecimalFormat;
-
 // vedere:
 // https://stackoverflow.com/questions/35516191/what-is-the-correct-way-to-use-createbufferstrategy
-
 // TODO
 // Threading
 // refactoring main..
@@ -88,18 +86,13 @@ public abstract class GraphicsApplication implements Runnable
 	
 	public void start(Settings settings)
 	{
-		
 		this.settings = settings;
-		
 		// Acquiring the current graphics device and graphics configuration
 		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
 		this.gc = graphDevice.getDefaultConfiguration();
-		
 		this.graphicsFrame = new GraphicsFrame(this);
-		
 		initFrameBufferedImage();
-		
 		// initialise timing elements
 		this.fpsStore = new double[NUM_AVG_FPS];
 		this.upsStore = new double[NUM_AVG_FPS];
@@ -107,21 +100,14 @@ public abstract class GraphicsApplication implements Runnable
 			fpsStore[i] = 0.0;
 			upsStore[i] = 0.0;
 		}
-		
 		this.period = NANO_IN_SEC / this.settings.targetFps;
-		
 		this.font = new Font(FONT_NAME, Font.BOLD, FONT_SIZE);
 		this.metrics = graphicsFrame.getCanvas().getFontMetrics(this.font);
-		
 		initInputManager();
-		
 		appInit();
-		
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
-		
 		this.graphicsFrame.setVisible(true);
-
 //		// start the app
 		startThread();
 	}
@@ -195,7 +181,6 @@ public abstract class GraphicsApplication implements Runnable
 //			g2d.dispose();
 //			return copy;
 			/**********************************************************/
-			
 			URL resource = getClass().getResource(fnm);
 			BufferedImage im = ImageIO.read(resource);
 			// convert the image to ARGB
@@ -214,7 +199,6 @@ public abstract class GraphicsApplication implements Runnable
 			return null;
 		}
 	} // end of loadImage() using ImageIO
-
 //	public InputManager getInputManager() {
 //		return inputManager;
 //	}
@@ -238,28 +222,22 @@ public abstract class GraphicsApplication implements Runnable
 	@Override
 	public void run()
 	{ // thread run method
-		
 		long beforeTime, afterTime, timeDiff, sleepTime; // times are in ns
 		long overSleepTime = 0L;
 		int numDelays = 0;
 		long excess = 0L;
-		
 		startTime = System.nanoTime();
 		prevStatsTime = startTime;
 		beforeTime = startTime;
-		
 		isRunning = true;
-		
 		// Main loop
 		while (isRunning) {
 			// update
 			update(0); // TODO fix/change arg 0?
 			render();
-			
 			afterTime = System.nanoTime();
 			timeDiff = afterTime - beforeTime;
 			sleepTime = (period - timeDiff) - overSleepTime; // ns
-			
 			if (sleepTime > 0) { // time left in cycle
 				//System.out.println("sleepTime: " + (sleepTime/NANO_IN_MILLI));
 				try {
@@ -278,7 +256,6 @@ public abstract class GraphicsApplication implements Runnable
 					numDelays = 0;
 				}
 			}
-			
 			beforeTime = System.nanoTime();
 
             /* If frame animation is taking too long, update the state
@@ -293,7 +270,6 @@ public abstract class GraphicsApplication implements Runnable
 				skips++;
 			}
 			framesSkipped += skips;
-			
 			updateStats();
 		}
 		finishOff();
@@ -347,7 +323,9 @@ public abstract class GraphicsApplication implements Runnable
 				showStats(g2d);
 			}
 			finally {
-				if (g2d != null) { g2d.dispose(); }
+				if (g2d != null) {
+					g2d.dispose();
+				}
 			}
 			// TODO ok here?
 			if (!bufferStrategy.contentsLost()) {
@@ -430,33 +408,26 @@ public abstract class GraphicsApplication implements Runnable
 		if (statsInterval >= UPDATE_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
 			long timeNow = System.nanoTime();
 			totalTimeSpent = (timeNow - startTime) / NANO_IN_SEC;  // ns --> secs
-			
 			long realElapsedTime = timeNow - prevStatsTime;   // time since last stats collection
 			totalElapsedTime += realElapsedTime;
-			
 			double timingError = ((double) (realElapsedTime - statsInterval) / statsInterval) * 100.0;
-			
 			totalFramesSkipped += framesSkipped;
-			
 			double actualFPS = 0.0;     // calculate the latest FPS and UPS
 			double actualUPS = 0.0;
 			if (totalElapsedTime > 0) {
 				actualFPS = (((double) frameCount / totalElapsedTime) * NANO_IN_SEC);
 				actualUPS = (((double) (frameCount + totalFramesSkipped) / totalElapsedTime) * NANO_IN_SEC);
 			}
-			
 			// store the latest FPS and UPS
 			fpsStore[(int) statsCount % NUM_AVG_FPS] = actualFPS;
 			upsStore[(int) statsCount % NUM_AVG_FPS] = actualUPS;
 			statsCount++;
-			
 			double totalFPS = 0.0;     // total the stored FPSs and UPSs
 			double totalUPS = 0.0;
 			for (int i = 0; i < NUM_AVG_FPS; i++) {
 				totalFPS += fpsStore[i];
 				totalUPS += upsStore[i];
 			}
-			
 			if (statsCount < NUM_AVG_FPS) { // obtain the average FPS and UPS
 				averageFPS = totalFPS / statsCount;
 				averageUPS = totalUPS / statsCount;
@@ -464,7 +435,6 @@ public abstract class GraphicsApplication implements Runnable
 				averageFPS = totalFPS / NUM_AVG_FPS;
 				averageUPS = totalUPS / NUM_AVG_FPS;
 			}
-
 //			System.out.println(timedf.format((double) statsInterval / NANO_IN_SEC) + " " +
 //					timedf.format((double) realElapsedTime / NANO_IN_SEC) + "s " +
 //					df.format(timingError) + "% " +
@@ -472,7 +442,6 @@ public abstract class GraphicsApplication implements Runnable
 //					framesSkipped + "/" + totalFramesSkipped + " skip; " +
 //					df.format(actualFPS) + " " + df.format(averageFPS) + " afps; " +
 //					df.format(actualUPS) + " " + df.format(averageUPS) + " aups");
-			
 			framesSkipped = 0;
 			prevStatsTime = timeNow;
 			statsInterval = 0L;   // reset
@@ -549,7 +518,6 @@ public abstract class GraphicsApplication implements Runnable
 		}
 	}
 }
-
 //	protected void draw() {
 ////		int redRgb = Color.RED.getRGB();
 ////		int height = bufferedImage.getHeight();

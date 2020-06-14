@@ -117,13 +117,11 @@ public class InputManager implements KeyListener, MouseListener,
 		this.comp = comp;
 		this.mouseLocation = new Point();
 		this.centerLocation = new Point();
-		
 		// register key and mouse listeners
 		comp.addKeyListener(this);
 		comp.addMouseListener(this);
 		comp.addMouseMotionListener(this);
 		comp.addMouseWheelListener(this);
-		
 		// allow input of the TAB key and other keys normally
 		// used for focus traversal
 		comp.setFocusTraversalKeysEnabled(false);
@@ -160,7 +158,6 @@ public class InputManager implements KeyListener, MouseListener,
 		if (mode == isRelativeMouseMode()) {
 			return;
 		}
-		
 		if (mode) {
 			try {
 				robot = new Robot();
@@ -209,13 +206,11 @@ public class InputManager implements KeyListener, MouseListener,
 				keyActions[i] = null;
 			}
 		}
-		
 		for (int i = 0; i < mouseActions.length; i++) {
 			if (mouseActions[i] == inputAction) {
 				mouseActions[i] = null;
 			}
 		}
-		
 		inputAction.reset();
 	}
 	
@@ -230,7 +225,6 @@ public class InputManager implements KeyListener, MouseListener,
 				keyActions[i].reset();
 			}
 		}
-		
 		for (int i = 0; i < mouseActions.length; i++) {
 			if (mouseActions[i] != null) {
 				mouseActions[i].reset();
@@ -245,19 +239,16 @@ public class InputManager implements KeyListener, MouseListener,
 	public List<String> getMaps(InputAction inputAction)
 	{
 		List<String> list = new ArrayList<String>();
-		
 		for (int i = 0; i < keyActions.length; i++) {
 			if (keyActions[i] == inputAction) {
 				list.add(getKeyName(i));
 			}
 		}
-		
 		for (int i = 0; i < mouseActions.length; i++) {
 			if (mouseActions[i] == inputAction) {
 				list.add(getMouseName(i));
 			}
 		}
-		
 		return list;
 	}
 	
@@ -407,12 +398,10 @@ public class InputManager implements KeyListener, MouseListener,
 			int dy = e.getY() - mouseLocation.y;
 			mouseHelper(MOUSE_MOVE_LEFT, MOUSE_MOVE_RIGHT, dx);
 			mouseHelper(MOUSE_MOVE_UP, MOUSE_MOVE_DOWN, dy);
-			
 			if (isRelativeMouseMode()) {
 				recenterMouse();
 			}
 		}
-		
 		mouseLocation.x = e.getX();
 		mouseLocation.y = e.getY();
 	}
