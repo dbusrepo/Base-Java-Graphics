@@ -2,11 +2,11 @@ package com.busatod.graphics._apps.ray_tracer;
 
 public class ShadeRec
 {
-	boolean  hit_an_object;        // did the ray hit an object?
-	Point3D  world_hit_point;    // world coordinates of hit point on untransformed object (used for texture transformations)
-	Normal   normal;                // normal at hit point
-	RGBColor color;                // used in the Chapter 3 only
-	World    world;                    // world reference
+	public boolean  hit_an_object;        // did the ray hit an object?
+	public Point3D  world_hit_point;    // world coordinates of hit point on untransformed object (used for texture transformations)
+	public Normal   normal;                // normal at hit point
+	public RGBColor color;                // used in the Chapter 3 only
+	public World    world;                    // world reference
 	
 	public ShadeRec(World w)
 	{

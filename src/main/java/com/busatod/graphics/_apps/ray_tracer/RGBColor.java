@@ -45,7 +45,7 @@ public class RGBColor
 	// the average of the three components
 	public float average()
 	{
-		return 0.3333333f * (this.r + this.g + this.b);
+		return (this.r + this.g + this.b) / 3;
 	}
 	
 	public RGBColor powc(float p)

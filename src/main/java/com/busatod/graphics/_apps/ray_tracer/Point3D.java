@@ -2,7 +2,7 @@ package com.busatod.graphics._apps.ray_tracer;
 
 public class Point3D
 {
-	float x, y, z;
+	public float x, y, z;
 	
 	public Point3D()
 	{
@@ -46,8 +46,8 @@ public class Point3D
 		return new Point3D(this.x - v.x, this.y - v.y, this.z - v.z);
 	}
 	
-	//	the vector that joins point p to this
-	public Vector3D joining_vec(Point3D p)
+	// the vector that joins point p to this
+	public Vector3D sub(Point3D p)
 	{
 		return new Vector3D(this.x - p.x, this.y - p.y, this.z - p.z);
 	}

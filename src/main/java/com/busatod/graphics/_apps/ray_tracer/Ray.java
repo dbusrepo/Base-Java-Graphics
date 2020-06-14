@@ -2,8 +2,8 @@ package com.busatod.graphics._apps.ray_tracer;
 
 public class Ray
 {
-	Point3D  o; // origin
-	Vector3D d; // direction
+	public Point3D  o; // origin
+	public Vector3D d; // direction
 	
 	public Ray()
 	{
