@@ -91,7 +91,7 @@ public class Vector3D
 	public void normalize()
 	{
 		float len = this.length();
-		assert (len >= Utils.EPS);
+		assert (len >= Constants.EPS);
 		this.x /= len;
 		this.y /= len;
 		this.z /= len;

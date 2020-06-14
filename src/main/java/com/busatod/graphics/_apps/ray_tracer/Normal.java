@@ -54,7 +54,7 @@ public class Normal
 	public void normalize()
 	{
 		float len = (float) Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
-		assert len >= Utils.EPS;
+		assert len >= Constants.EPS;
 		this.x /= len;
 		this.y /= len;
 		this.z /= len;
