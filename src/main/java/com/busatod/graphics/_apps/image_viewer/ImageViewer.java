@@ -1,4 +1,4 @@
-package com.busatod.graphics._apps.image_loader;
+package com.busatod.graphics._apps.image_viewer;
 
 import com.busatod.graphics.app.GraphicsApplication;
 import com.busatod.graphics.app.Settings;
@@ -9,7 +9,7 @@ import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
-public class ImageLoader extends GraphicsApplication
+public class ImageViewer extends GraphicsApplication
 {
 	
 	private final static String IMAGE_DIR = "/image_loader/pics"; // relativo a /resources
@@ -18,15 +18,16 @@ public class ImageLoader extends GraphicsApplication
 	private InputAction   exitAction;
 	private BufferedImage im;
 	
-	public ImageLoader()
+	public ImageViewer()
 	{
 		Settings settings = new Settings();
+		settings.title = "Image viewer";
 		start(settings);
 	}
 	
 	public static void main(String[] args)
 	{
-		new ImageLoader();
+		new ImageViewer();
 	}
 	
 	@Override

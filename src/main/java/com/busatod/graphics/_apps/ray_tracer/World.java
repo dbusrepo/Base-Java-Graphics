@@ -1,6 +1,7 @@
 package com.busatod.graphics._apps.ray_tracer;
 
 import com.busatod.graphics._apps.ray_tracer.geometric_objects.GeometricObject;
+import com.busatod.graphics._apps.ray_tracer.tracers.Tracer;
 
 import java.util.List;
 
@@ -8,6 +9,7 @@ public class World
 {
 	private ViewPlane             view_plane;
 	private RGBColor              background_color;
+	private Tracer                tracer;
 	private List<GeometricObject> objects;
 	
 	public ViewPlane getView_plane()
@@ -53,4 +55,12 @@ public class World
 		return sr;
 	}
 	
+	public void build()
+	{
+	
+	}
+	
+	public void render_scene()
+	{
+	}
 }
