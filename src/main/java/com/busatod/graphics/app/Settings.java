@@ -1,4 +1,4 @@
-package main.java.com.busatod.graphics.app;
+package com.busatod.graphics.app;
 
 public class Settings
 {

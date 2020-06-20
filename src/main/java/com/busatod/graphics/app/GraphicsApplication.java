@@ -1,7 +1,7 @@
-package main.java.com.busatod.graphics.app;
+package com.busatod.graphics.app;
 
-import main.java.com.busatod.graphics.app.input.InputAction;
-import main.java.com.busatod.graphics.app.input.InputManager;
+import com.busatod.graphics.app.input.InputAction;
+import com.busatod.graphics.app.input.InputManager;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -86,7 +86,7 @@ public abstract class GraphicsApplication implements Runnable
 	private              double                averageUPS            = 0.0;
 	private              Font                  font;
 	private              FontMetrics           metrics;
-	private 			 InputAction exitAction;
+	private              InputAction           exitAction;
 	private              InputAction           pauseAction;
 	private              InputAction           toggleFullscreenAction;
 	
