@@ -1,4 +1,4 @@
-package com.busatod.graphics.app.input;
+package main.java.com.busatod.graphics.app.input;
 
 import javax.swing.*;
 import java.awt.*;
