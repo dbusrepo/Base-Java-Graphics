@@ -24,7 +24,7 @@ repositories {
     mavenCentral()
 }
 
-mainClassName = 'com.busatod.graphics.Main'
+mainClassName = 'com.busatod.graphics.app.TestGraphicsApp'
 
 jar {
     manifest {
