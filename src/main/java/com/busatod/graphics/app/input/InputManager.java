@@ -219,7 +219,7 @@ public class InputManager implements KeyListener, MouseListener,
 	 * <p>Note that use of the Robot class may not be available
 	 * on all platforms.
 	 */
-	private synchronized void recenterMouse()
+	public synchronized void recenterMouse()
 	{
 		if (robot != null && comp.isShowing()) {
 			centerLocation.x = comp.getWidth() / 2;

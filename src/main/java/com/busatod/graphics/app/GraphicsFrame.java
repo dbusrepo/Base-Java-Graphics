@@ -39,13 +39,16 @@ class GraphicsFrame extends JFrame implements WindowListener
 		setExtendedState(JFrame.NORMAL);
 		initCanvas();
 		setResizable(false);
-//		setVisible(true); // done in graphics app
 		setLocationRelativeTo(null); // called after setVisible(true); to center the window (first screen only?)
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		if (settings.fullScreen) {
 			initFullScreen();
 		}
+		setAlwaysOnTop(settings.fullScreen);
 		initBufferStrategy();
+		setVisible(true); // done in graphics app
+		setFocusable(true);
+		requestFocus();
 	}
 	
 	private void initCanvas()
@@ -110,8 +113,11 @@ class GraphicsFrame extends JFrame implements WindowListener
 	
 	private void enableFullScreen()
 	{
-		setExtendedState(JFrame.MAXIMIZED_BOTH); // TODO
 		graphDevice.setFullScreenWindow(this);
+		setExtendedState(JFrame.MAXIMIZED_BOTH); // TODO
+		GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		setMaximizedBounds(env.getMaximumWindowBounds());
+//		setPreferredSize(Toolkit.getDefaultToolkit().getScreenSize());
 		enableInputMethods(false);
 		setDisplayMode(); // switch on full-screen exclusive mode
 	}
@@ -122,10 +128,9 @@ class GraphicsFrame extends JFrame implements WindowListener
 			return;
 		}
 		restoreScreen();
-		settings.toggleFullscreen(); // toggle the flag...
+		settings.toggleFullscreen();
 		initFrame();
 	}
-	// TODO
 	
 	/**
 	 * Remove the window from the screen, if we are in full screen

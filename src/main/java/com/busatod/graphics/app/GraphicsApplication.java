@@ -117,7 +117,7 @@ public abstract class GraphicsApplication implements Runnable
 		appInit();
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
-		this.graphicsFrame.setVisible(true);
+//		this.graphicsFrame.setVisible(true);
 //		// start the app
 		startThread();
 	}
@@ -161,7 +161,20 @@ public abstract class GraphicsApplication implements Runnable
 		inputManager.mapToKey(KeyEvent.VK_ESCAPE, exitAction);
 		inputManager.mapToKey(KeyEvent.VK_P, pauseAction);
 		inputManager.mapToKey(KeyEvent.VK_F1, toggleFullscreenAction);
+		recenterMouse();
 	}
+	
+	private void recenterMouse()
+	{
+		if (inputManager.isRelativeMouseMode()) {
+			inputManager.recenterMouse();
+		} else {
+			inputManager.setRelativeMouseMode(true);
+			inputManager.recenterMouse();
+			inputManager.setRelativeMouseMode(false);
+		}
+	}
+
 //	public InputManager getInputManager() {
 //		return inputManager;
 //	}
@@ -314,6 +327,7 @@ public abstract class GraphicsApplication implements Runnable
 			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
 			graphicsFrame.toggleFullscreen();
 			inputManager.add2Component(graphicsFrame.getCanvas()); // TODO move?
+			recenterMouse();
 		}
 		// ...
 	}
