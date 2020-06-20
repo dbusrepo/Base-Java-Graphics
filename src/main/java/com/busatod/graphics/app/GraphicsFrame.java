@@ -32,52 +32,6 @@ class GraphicsFrame extends JFrame implements WindowListener
 		initFrame();
 	}
 	
-	private static void showModes(DisplayMode[] modes)
-	{
-		System.out.println("Modes");
-		for (int i = 0; i < modes.length; i++) {
-			System.out.print("(" + displayModePrintStr(modes[i]) + ")  ");
-			if ((i + 1) % 4 == 0) {
-				System.out.println();
-			}
-		}
-		System.out.println();
-	}
-	
-	public static String displayModePrintStr(DisplayMode mode)
-	{
-		return mode.getWidth() +
-				"x" + mode.getHeight() +
-				"x" + mode.getBitDepth() +
-				"@" + mode.getRefreshRate();
-	}
-	
-	/**
-	 * Determines if two display modes "match". Two display
-	 * modes match if they have the same resolution, bit depth,
-	 * and refresh rate. The bit depth is ignored if one of the
-	 * modes has a bit depth of DisplayMode.BIT_DEPTH_MULTI.
-	 * Likewise, the refresh rate is ignored if one of the
-	 * modes has a refresh rate of
-	 * DisplayMode.REFRESH_RATE_UNKNOWN.
-	 */
-	private static boolean displayModesMatch(DisplayMode mode1,
-											 DisplayMode mode2)
-	{
-		if (mode1.getWidth() != mode2.getWidth() ||
-				mode1.getHeight() != mode2.getHeight()) {
-			return false;
-		}
-		if (mode1.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI &&
-				mode2.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI &&
-				mode1.getBitDepth() != mode2.getBitDepth()) {
-			return false;
-		}
-		return mode1.getRefreshRate() == DisplayMode.REFRESH_RATE_UNKNOWN ||
-				mode2.getRefreshRate() == DisplayMode.REFRESH_RATE_UNKNOWN ||
-				mode1.getRefreshRate() == mode2.getRefreshRate();
-	}
-	
 	private void initFrame()
 	{
 		setUndecorated(settings.fullScreen); // no menu bar, borders, etc. or Swing components? // TODO
@@ -142,7 +96,6 @@ class GraphicsFrame extends JFrame implements WindowListener
 		catch (InterruptedException ex) {
 		}
 	}
-	// TODO
 	
 	private void initFullScreen()
 	{
@@ -172,6 +125,7 @@ class GraphicsFrame extends JFrame implements WindowListener
 		settings.toggleFullscreen(); // toggle the flag...
 		initFrame();
 	}
+	// TODO
 	
 	/**
 	 * Remove the window from the screen, if we are in full screen
@@ -366,5 +320,51 @@ class GraphicsFrame extends JFrame implements WindowListener
 	
 	void drawOnCanvas()
 	{
+	}
+	
+	private static void showModes(DisplayMode[] modes)
+	{
+		System.out.println("Modes");
+		for (int i = 0; i < modes.length; i++) {
+			System.out.print("(" + displayModePrintStr(modes[i]) + ")  ");
+			if ((i + 1) % 4 == 0) {
+				System.out.println();
+			}
+		}
+		System.out.println();
+	}
+	
+	public static String displayModePrintStr(DisplayMode mode)
+	{
+		return mode.getWidth() +
+				"x" + mode.getHeight() +
+				"x" + mode.getBitDepth() +
+				"@" + mode.getRefreshRate();
+	}
+	
+	/**
+	 * Determines if two display modes "match". Two display
+	 * modes match if they have the same resolution, bit depth,
+	 * and refresh rate. The bit depth is ignored if one of the
+	 * modes has a bit depth of DisplayMode.BIT_DEPTH_MULTI.
+	 * Likewise, the refresh rate is ignored if one of the
+	 * modes has a refresh rate of
+	 * DisplayMode.REFRESH_RATE_UNKNOWN.
+	 */
+	private static boolean displayModesMatch(DisplayMode mode1,
+											 DisplayMode mode2)
+	{
+		if (mode1.getWidth() != mode2.getWidth() ||
+				mode1.getHeight() != mode2.getHeight()) {
+			return false;
+		}
+		if (mode1.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI &&
+				mode2.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI &&
+				mode1.getBitDepth() != mode2.getBitDepth()) {
+			return false;
+		}
+		return mode1.getRefreshRate() == DisplayMode.REFRESH_RATE_UNKNOWN ||
+				mode2.getRefreshRate() == DisplayMode.REFRESH_RATE_UNKNOWN ||
+				mode1.getRefreshRate() == mode2.getRefreshRate();
 	}
 }

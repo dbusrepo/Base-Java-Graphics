@@ -24,25 +24,35 @@ import java.text.DecimalFormat;
 public abstract class GraphicsApplication implements Runnable
 {
 	
-	private static final long NANO_IN_MILLI = 1000000L;
-	private static final long NANO_IN_SEC   = 1000L * NANO_IN_MILLI;
+	private class ShutDownThread extends Thread
+	{
+		
+		@Override
+		public void run()
+		{
+//			super.run();
+			isRunning = false;
+			finishOff();
+		}
+	}
 	
-	private static final int    FONT_SIZE             = 20;
-	private static final String FONT_NAME             = "SansSerif";
+	private static final long                  NANO_IN_MILLI         = 1000000L;
+	private static final long                  NANO_IN_SEC           = 1000L * NANO_IN_MILLI;
+	private static final int                   FONT_SIZE             = 20;
+	private static final String                FONT_NAME             = "SansSerif";
 	// Number of frames with a delay of 0 ms before the animation thread yields
 	// to other running threads.
-	private static final int    NUM_DELAYS_PER_YIELD  = 16;
+	private static final int                   NUM_DELAYS_PER_YIELD  = 16;
 	// private static long MAX_STATS_INTERVAL = 1000L;
 	// record stats every 1 second (roughly)X
-	private static final long   UPDATE_STATS_INTERVAL = NANO_IN_SEC; // in ns, 1sec
+	private static final long                  UPDATE_STATS_INTERVAL = NANO_IN_SEC; // in ns, 1sec
 	// no. of frames that can be skipped in any one animation loop
 	// i.e the state is updated but not rendered
-	private static final int    MAX_FRAME_SKIPS       = 5;
-	
+	private static final int                   MAX_FRAME_SKIPS       = 5;
 	// number of FPS values stored to get an average
-	private static final int                   NUM_AVG_FPS        = 10;
-	private final        boolean               appOver            = false;
-	private final        DecimalFormat         df                 = new DecimalFormat("0.##");  // 2 dp
+	private static final int                   NUM_AVG_FPS           = 10;
+	private final        boolean               appOver               = false;
+	private final        DecimalFormat         df                    = new DecimalFormat("0.##");  // 2 dp
 	/******************************************************************************************************************/
 	
 	protected            InputManager          inputManager;
@@ -54,26 +64,26 @@ public abstract class GraphicsApplication implements Runnable
 	private              GraphicsFrame         graphicsFrame;
 	private              GraphicsDevice        graphDevice;
 	private              GraphicsConfiguration gc;
-	private              Thread                renderThread       = null;
-	private volatile     boolean               isRunning          = false;
-	private              boolean               isPaused           = false;
-	private              boolean               finishedOff        = false;
+	private              Thread                renderThread          = null;
+	private volatile     boolean               isRunning             = false;
+	private              boolean               isPaused              = false;
+	private              boolean               finishedOff           = false;
 	private              long                  period;  // period between drawing in _nanosecs_
 	// used for gathering statistics
 	private              long                  startTime;
-	private              long                  statsInterval      = 0L; // ns
+	private              long                  statsInterval         = 0L; // ns
 	private              long                  prevStatsTime;
-	private              long                  totalElapsedTime   = 0L;
-	private              long                  totalTimeSpent     = 0; // seconds
-	private              long                  frameCount         = 0;
+	private              long                  totalElapsedTime      = 0L;
+	private              long                  totalTimeSpent        = 0; // seconds
+	private              long                  frameCount            = 0;
 	private              double[]              fpsStore;
-	private              long                  statsCount         = 0;
-	private              double                averageFPS         = 0.0;
-	private              long                  framesSkipped      = 0L;
-	private              long                  totalFramesSkipped = 0L;
+	private              long                  statsCount            = 0;
+	private              double                averageFPS            = 0.0;
+	private              long                  framesSkipped         = 0L;
+	private              long                  totalFramesSkipped    = 0L;
 	//	private DecimalFormat timedf = new DecimalFormat("0.####");  // 4 dp
 	private              double[]              upsStore;
-	private              double                averageUPS         = 0.0;
+	private              double                averageUPS            = 0.0;
 	private              Font                  font;
 	private              FontMetrics           metrics;
 	private              InputAction           exitAction;
@@ -152,6 +162,9 @@ public abstract class GraphicsApplication implements Runnable
 		inputManager.mapToKey(KeyEvent.VK_P, pauseAction);
 		inputManager.mapToKey(KeyEvent.VK_F1, toggleFullscreenAction);
 	}
+//	public InputManager getInputManager() {
+//		return inputManager;
+//	}
 	
 	// vedi ImagesLoader.java Chap6 code KJGP
 	public BufferedImage loadImage(String fnm)
@@ -199,9 +212,6 @@ public abstract class GraphicsApplication implements Runnable
 			return null;
 		}
 	} // end of loadImage() using ImageIO
-//	public InputManager getInputManager() {
-//		return inputManager;
-//	}
 	
 	public void writeImage(BufferedImage bi, String fnm, String format)
 	{
@@ -489,14 +499,14 @@ public abstract class GraphicsApplication implements Runnable
 		return gc;
 	}
 	
+	/* SPECIFIC APP LOGIC */
+	
 	protected void appDraw()
 	{
 		Graphics2D gBuffer = (Graphics2D) bufferImage.getGraphics();
 		gBuffer.setColor(Color.BLACK);
 		gBuffer.fillRect(0, 0, bufferImage.getWidth(), bufferImage.getHeight());
 	}
-	
-	/* SPECIFIC APP LOGIC */
 	
 	protected abstract void appInit();
 	
@@ -505,18 +515,6 @@ public abstract class GraphicsApplication implements Runnable
 	protected abstract void appFinishOff();
 	
 	protected abstract void appPrintFinalStats();
-	
-	private class ShutDownThread extends Thread
-	{
-		
-		@Override
-		public void run()
-		{
-//			super.run();
-			isRunning = false;
-			finishOff();
-		}
-	}
 }
 //	protected void draw() {
 ////		int redRgb = Color.RED.getRGB();

@@ -57,61 +57,6 @@ public class InputManager implements KeyListener, MouseListener,
 		add2Component(comp);
 	}
 	
-	/**
-	 * Gets the name of a key code.
-	 */
-	public static String getKeyName(int keyCode)
-	{
-		return KeyEvent.getKeyText(keyCode);
-	}
-	
-	/**
-	 * Gets the name of a mouse code.
-	 */
-	public static String getMouseName(int mouseCode)
-	{
-		switch (mouseCode) {
-			case MOUSE_MOVE_LEFT:
-				return "Mouse Left";
-			case MOUSE_MOVE_RIGHT:
-				return "Mouse Right";
-			case MOUSE_MOVE_UP:
-				return "Mouse Up";
-			case MOUSE_MOVE_DOWN:
-				return "Mouse Down";
-			case MOUSE_WHEEL_UP:
-				return "Mouse Wheel Up";
-			case MOUSE_WHEEL_DOWN:
-				return "Mouse Wheel Down";
-			case MOUSE_BUTTON_1:
-				return "Mouse Button 1";
-			case MOUSE_BUTTON_2:
-				return "Mouse Button 2";
-			case MOUSE_BUTTON_3:
-				return "Mouse Button 3";
-			default:
-				return "Unknown mouse code " + mouseCode;
-		}
-	}
-	
-	/**
-	 * Gets the mouse code for the button specified in this
-	 * MouseEvent.
-	 */
-	public static int getMouseButtonCode(MouseEvent e)
-	{
-		switch (e.getButton()) {
-			case MouseEvent.BUTTON1:
-				return MOUSE_BUTTON_1;
-			case MouseEvent.BUTTON2:
-				return MOUSE_BUTTON_2;
-			case MouseEvent.BUTTON3:
-				return MOUSE_BUTTON_3;
-			default:
-				return -1;
-		}
-	}
-	
 	public void add2Component(Component comp)
 	{
 		this.comp = comp;
@@ -425,6 +370,61 @@ public class InputManager implements KeyListener, MouseListener,
 		if (inputAction != null) {
 			inputAction.press(Math.abs(amount));
 			inputAction.release();
+		}
+	}
+	
+	/**
+	 * Gets the name of a key code.
+	 */
+	public static String getKeyName(int keyCode)
+	{
+		return KeyEvent.getKeyText(keyCode);
+	}
+	
+	/**
+	 * Gets the name of a mouse code.
+	 */
+	public static String getMouseName(int mouseCode)
+	{
+		switch (mouseCode) {
+			case MOUSE_MOVE_LEFT:
+				return "Mouse Left";
+			case MOUSE_MOVE_RIGHT:
+				return "Mouse Right";
+			case MOUSE_MOVE_UP:
+				return "Mouse Up";
+			case MOUSE_MOVE_DOWN:
+				return "Mouse Down";
+			case MOUSE_WHEEL_UP:
+				return "Mouse Wheel Up";
+			case MOUSE_WHEEL_DOWN:
+				return "Mouse Wheel Down";
+			case MOUSE_BUTTON_1:
+				return "Mouse Button 1";
+			case MOUSE_BUTTON_2:
+				return "Mouse Button 2";
+			case MOUSE_BUTTON_3:
+				return "Mouse Button 3";
+			default:
+				return "Unknown mouse code " + mouseCode;
+		}
+	}
+	
+	/**
+	 * Gets the mouse code for the button specified in this
+	 * MouseEvent.
+	 */
+	public static int getMouseButtonCode(MouseEvent e)
+	{
+		switch (e.getButton()) {
+			case MouseEvent.BUTTON1:
+				return MOUSE_BUTTON_1;
+			case MouseEvent.BUTTON2:
+				return MOUSE_BUTTON_2;
+			case MouseEvent.BUTTON3:
+				return MOUSE_BUTTON_3;
+			default:
+				return -1;
 		}
 	}
 }

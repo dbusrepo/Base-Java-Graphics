@@ -8,6 +8,28 @@ package com.busatod.graphics.app.input;
 public class InputAction
 {
 	
+	public enum DetectBehavior
+	{
+		/**
+		 * Normal behavior. The isPressed() method returns true
+		 * as long as the key is held down.
+		 */
+		NORMAL,
+		/**
+		 * Initial press behavior. The isPressed() method returns
+		 * true only after the key is first pressed, and not again
+		 * until the key is released and pressed again.
+		 */
+		INITIAL_PRESS_ONLY
+	}
+	
+	private enum State
+	{
+		RELEASED,
+		PRESSED,
+		WAITING_FOR_RELEASE
+	}
+	
 	private final String         name;
 	private final DetectBehavior behavior;
 	private       int            amount;
@@ -104,27 +126,5 @@ public class InputAction
 			}
 		}
 		return retVal;
-	}
-	
-	public enum DetectBehavior
-	{
-		/**
-		 * Normal behavior. The isPressed() method returns true
-		 * as long as the key is held down.
-		 */
-		NORMAL,
-		/**
-		 * Initial press behavior. The isPressed() method returns
-		 * true only after the key is first pressed, and not again
-		 * until the key is released and pressed again.
-		 */
-		INITIAL_PRESS_ONLY
-	}
-	
-	private enum State
-	{
-		RELEASED,
-		PRESSED,
-		WAITING_FOR_RELEASE
 	}
 }
