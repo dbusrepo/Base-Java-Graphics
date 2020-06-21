@@ -26,7 +26,6 @@ public abstract class GraphicsApplication implements Runnable
 	
 	private class ShutDownThread extends Thread
 	{
-		
 		@Override
 		public void run()
 		{
@@ -36,59 +35,60 @@ public abstract class GraphicsApplication implements Runnable
 		}
 	}
 	
-	private static final long                  NANO_IN_MILLI         = 1000000L;
-	private static final long                  NANO_IN_SEC           = 1000L * NANO_IN_MILLI;
-	private static final int                   FONT_SIZE             = 20;
-	private static final String                FONT_NAME             = "SansSerif";
+	private static final long          NANO_IN_MILLI         = 1000000L;
+	private static final long          NANO_IN_SEC           = 1000L * NANO_IN_MILLI;
+	//	private static final int                   FONT_SIZE             = 20;
+	private static final String        FONT_NAME             = "SansSerif";
 	// Number of frames with a delay of 0 ms before the animation thread yields
 	// to other running threads.
-	private static final int                   NUM_DELAYS_PER_YIELD  = 16;
+	private static final int           NUM_DELAYS_PER_YIELD  = 16;
 	// private static long MAX_STATS_INTERVAL = 1000L;
 	// record stats every 1 second (roughly)X
-	private static final long                  UPDATE_STATS_INTERVAL = NANO_IN_SEC; // in ns, 1sec
+	private static final long          UPDATE_STATS_INTERVAL = NANO_IN_SEC; // in ns, 1sec
 	// no. of frames that can be skipped in any one animation loop
 	// i.e the state is updated but not rendered
-	private static final int                   MAX_FRAME_SKIPS       = 5;
+	private static final int           MAX_FRAME_SKIPS       = 5;
 	// number of FPS values stored to get an average
-	private static final int                   NUM_AVG_FPS           = 10;
-	private final        boolean               appOver               = false;
-	private final        DecimalFormat         df                    = new DecimalFormat("0.##");  // 2 dp
+	private static final int           NUM_AVG_FPS           = 10;
+	private final        boolean       appOver               = false;
+	private final        DecimalFormat df                    = new DecimalFormat("0.##");  // 2 dp
 	/******************************************************************************************************************/
 	
-	protected            InputManager          inputManager;
-	protected            BufferedImage         bufferImage;
-	protected            int[]                 buffer;
+	protected            InputManager  inputManager;
+	protected            BufferedImage bufferImage;
+	protected            int[]         pixels; // buffer as int[]
+	
 	/******************************************************************************************************************/
 	
-	private              Settings              settings;
-	private              GraphicsFrame         graphicsFrame;
-	private              GraphicsDevice        graphDevice;
-	private              GraphicsConfiguration gc;
-	private              Thread                renderThread          = null;
-	private volatile     boolean               isRunning             = false;
-	private              boolean               isPaused              = false;
-	private              boolean               finishedOff           = false;
-	private              long                  period;  // period between drawing in _nanosecs_
+	private          Settings              settings;
+	private          GraphicsFrame         graphicsFrame;
+	private          GraphicsDevice        graphDevice;
+	private          GraphicsConfiguration gc;
+	private          Thread                renderThread       = null;
+	private volatile boolean               isRunning          = false;
+	private          boolean               isPaused           = false;
+	private          boolean               finishedOff        = false;
+	private          long                  period;  // period between drawing in _nanosecs_
 	// used for gathering statistics
-	private              long                  startTime;
-	private              long                  statsInterval         = 0L; // ns
-	private              long                  prevStatsTime;
-	private              long                  totalElapsedTime      = 0L;
-	private              long                  totalTimeSpent        = 0; // seconds
-	private              long                  frameCount            = 0;
-	private              double[]              fpsStore;
-	private              long                  statsCount            = 0;
-	private              double                averageFPS            = 0.0;
-	private              long                  framesSkipped         = 0L;
-	private              long                  totalFramesSkipped    = 0L;
+	private          long                  startTime;
+	private          long                  statsInterval      = 0L; // ns
+	private          long                  prevStatsTime;
+	private          long                  totalElapsedTime   = 0L;
+	private          long                  totalTimeSpent     = 0; // seconds
+	private          long                  frameCount         = 0;
+	private          double[]              fpsStore;
+	private          long                  statsCount         = 0;
+	private          double                averageFPS         = 0.0;
+	private          long                  framesSkipped      = 0L;
+	private          long                  totalFramesSkipped = 0L;
 	//	private DecimalFormat timedf = new DecimalFormat("0.####");  // 4 dp
-	private              double[]              upsStore;
-	private              double                averageUPS            = 0.0;
-	private              Font                  font;
-	private              FontMetrics           metrics;
-	private              InputAction           exitAction;
-	private              InputAction           pauseAction;
-	private              InputAction           toggleFullscreenAction;
+	private          double[]              upsStore;
+	private          double                averageUPS         = 0.0;
+	private          Font                  font;
+	private          FontMetrics           metrics;
+	private          InputAction           exitAction;
+	private          InputAction           pauseAction;
+	private          InputAction           toggleFullscreenAction;
 	
 	public GraphicsApplication()
 	{
@@ -111,8 +111,7 @@ public abstract class GraphicsApplication implements Runnable
 			upsStore[i] = 0.0;
 		}
 		this.period = NANO_IN_SEC / this.settings.targetFps;
-		this.font = new Font(FONT_NAME, Font.BOLD, FONT_SIZE);
-		this.metrics = graphicsFrame.getCanvas().getFontMetrics(this.font);
+		initFont();
 		initInputManager();
 		appInit();
 		// for shutdown tasks, a shutdown may not only come from the program
@@ -122,13 +121,19 @@ public abstract class GraphicsApplication implements Runnable
 		startThread();
 	}
 	
+	private void initFont()
+	{
+		this.font = new Font(FONT_NAME, Font.BOLD, 10);
+		this.metrics = graphicsFrame.getCanvas().getFontMetrics(this.font);
+	}
+	
 	private void initFrameBufferedImage()
 	{
 		// TYPE_INT_ARGB, 4 bytes per pixel with alpha channel
 		// TYPE_INT_RGB, 4 bytes per pixel without alpha channel
 		// see https://stackoverflow.com/questions/32414617/how-to-decide-which-bufferedimage-image-type-to-use
 		this.bufferImage = new BufferedImage(this.settings.width, this.settings.height, BufferedImage.TYPE_INT_ARGB);
-		this.buffer = ((DataBufferInt) this.bufferImage.getRaster().getDataBuffer()).getData();
+		this.pixels = ((DataBufferInt) this.bufferImage.getRaster().getDataBuffer()).getData();
 	}
 	
 	Settings getSettings()
@@ -516,6 +521,11 @@ public abstract class GraphicsApplication implements Runnable
 	/* SPECIFIC APP LOGIC */
 	
 	protected void appDraw()
+	{
+		drawBackground();
+	}
+	
+	protected void drawBackground()
 	{
 		Graphics2D gBuffer = (Graphics2D) bufferImage.getGraphics();
 		gBuffer.setColor(Color.BLACK);
