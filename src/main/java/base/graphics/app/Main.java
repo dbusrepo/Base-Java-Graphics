@@ -1,40 +1,33 @@
 package base.graphics.app;
 
-public class Main extends GraphicsApplication
-{
-	public Main()
-	{
+public class Main extends GraphicsApplication {
+	public Main() {
 		Settings settings = new Settings();
-		settings.title = "Test Graphics app";
+		settings.title = "Base Graphics App with Java";
 		start(settings);
 	}
-	
+
 	@Override
-	protected void appInit()
-	{
-	
+	protected void appInit() {
+
 	}
-	
+
 	@Override
-	protected void appUpdate(long elapsedTime)
-	{
-	
+	protected void appUpdate(long elapsedTime) {
+
 	}
-	
+
 	@Override
-	protected void appFinishOff()
-	{
-	
+	protected void appFinishOff() {
+
 	}
-	
+
 	@Override
-	protected void appPrintFinalStats()
-	{
-	
+	protected void appPrintFinalStats() {
+
 	}
-	
-	public static void main(String[] args)
-	{
+
+	public static void main(String[] args) {
 		new Main();
 	}
 }
