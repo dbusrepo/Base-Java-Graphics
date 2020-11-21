@@ -1,4 +1,4 @@
-package com.busatod.graphics.app.input;
+package base.graphics.app.input;
 
 /**
  * The InputAction class is an abstract to a user-initiated

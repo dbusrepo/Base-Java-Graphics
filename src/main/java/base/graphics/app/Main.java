@@ -1,8 +1,8 @@
-package com.busatod.graphics.app;
+package base.graphics.app;
 
-public class TestGraphicsApp extends GraphicsApplication
+public class Main extends GraphicsApplication
 {
-	public TestGraphicsApp()
+	public Main()
 	{
 		Settings settings = new Settings();
 		settings.title = "Test Graphics app";
@@ -35,6 +35,6 @@ public class TestGraphicsApp extends GraphicsApplication
 	
 	public static void main(String[] args)
 	{
-		new TestGraphicsApp();
+		new Main();
 	}
 }

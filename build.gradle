@@ -1,11 +1,11 @@
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'eclipse'
-apply plugin: 'idea'
+// apply plugin: 'idea'
 
 version = theVersion
-sourceCompatibility = theSourceCompatibility
-targetCompatibility = theTargetCompatibility
+// sourceCompatibility = theSourceCompatibility
+// targetCompatibility = theTargetCompatibility
 
 //https://stackoverflow.com/questions/31077844/add-another-java-source-directory-to-gradle-script
 sourceSets {
@@ -24,7 +24,7 @@ repositories {
     mavenCentral()
 }
 
-mainClassName = 'com.busatod.graphics.app.TestGraphicsApp'
+mainClassName = 'base.graphics.app.Main'
 
 jar {
     manifest {

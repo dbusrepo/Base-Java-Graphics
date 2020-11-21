@@ -1,9 +1,10 @@
-package com.busatod.graphics.app;
-
-import com.busatod.graphics.app.input.InputAction;
-import com.busatod.graphics.app.input.InputManager;
+package base.graphics.app;
 
 import javax.imageio.ImageIO;
+
+import base.graphics.app.input.InputAction;
+import base.graphics.app.input.InputManager;
+
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
