@@ -1,11 +1,15 @@
 package base.graphics.app;
 
-import javax.imageio.ImageIO;
-
-import base.graphics.app.input.InputAction;
-import base.graphics.app.input.InputManager;
-
-import java.awt.*;
+import java.awt.Canvas;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
@@ -13,93 +17,99 @@ import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.net.URL;
 import java.text.DecimalFormat;
+
+import javax.imageio.ImageIO;
+
+import base.graphics.app.input.InputAction;
+import base.graphics.app.input.InputManager;
+
 // vedere:
 // https://stackoverflow.com/questions/35516191/what-is-the-correct-way-to-use-createbufferstrategy
-// TODO
 // Threading
 // refactoring main..
 // logic app class
 // see reader comments about the book chapters on the book website
 // vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen
 
-public abstract class GraphicsApplication implements Runnable
-{
-	
-	private class ShutDownThread extends Thread
-	{
+public abstract class GraphicsApplication implements Runnable {
+
+	private class ShutDownThread extends Thread {
 		@Override
-		public void run()
-		{
+		public void run() {
 //			super.run();
 			isRunning = false;
 			finishOff();
 		}
 	}
-	
-	private static final long          NANO_IN_MILLI         = 1000000L;
-	private static final long          NANO_IN_SEC           = 1000L * NANO_IN_MILLI;
-	//	private static final int                   FONT_SIZE             = 20;
-	private static final String        FONT_NAME             = "SansSerif";
+
+	private static final long NANO_IN_MILLI = 1000000L;
+	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
+	// private static final int FONT_SIZE = 20;
+	private static final String FONT_NAME = "SansSerif";
 	// Number of frames with a delay of 0 ms before the animation thread yields
 	// to other running threads.
-	private static final int           NUM_DELAYS_PER_YIELD  = 16;
+	private static final int NUM_DELAYS_PER_YIELD = 16;
 	// private static long MAX_STATS_INTERVAL = 1000L;
 	// record stats every 1 second (roughly)X
-	private static final long          UPDATE_STATS_INTERVAL = NANO_IN_SEC; // in ns, 1sec
+	private static final long UPDATE_STATS_INTERVAL = NANO_IN_SEC; // in ns,
+																	// 1sec
 	// no. of frames that can be skipped in any one animation loop
 	// i.e the state is updated but not rendered
-	private static final int           MAX_FRAME_SKIPS       = 5;
+	private static final int MAX_FRAME_SKIPS = 5;
 	// number of FPS values stored to get an average
-	private static final int           NUM_AVG_FPS           = 10;
-	private final        boolean       appOver               = false;
-	private final        DecimalFormat df                    = new DecimalFormat("0.##");  // 2 dp
+	private static final int NUM_AVG_FPS = 10;
+
 	/******************************************************************************************************************/
-	
-	protected            InputManager  inputManager;
-	protected            BufferedImage bufferImage;
-	protected            int[]         pixels; // buffer as int[]
-	
+
+	private final boolean appOver = false;
+	private final DecimalFormat df = new DecimalFormat("0.##"); // 2 dp
+
 	/******************************************************************************************************************/
-	
-	private          Settings              settings;
-	private          GraphicsFrame         graphicsFrame;
-	private          GraphicsDevice        graphDevice;
-	private          GraphicsConfiguration gc;
-	private          Thread                renderThread       = null;
-	private volatile boolean               isRunning          = false;
-	private          boolean               isPaused           = false;
-	private          boolean               finishedOff        = false;
-	private          long                  period;  // period between drawing in _nanosecs_
+
+	protected InputManager inputManager;
+	protected BufferedImage bufferImage;
+	protected int[] pixels; // buffer as int[]
+
+	/******************************************************************************************************************/
+
+	private Settings settings;
+	private GraphicsFrame graphicsFrame;
+	private GraphicsDevice graphDevice;
+	private GraphicsConfiguration gc;
+	private Thread renderThread = null;
+	private volatile boolean isRunning = false;
+	private boolean isPaused = false;
+	private boolean finishedOff = false;
+	private long period; // period between drawing in _nanosecs_
 	// used for gathering statistics
-	private          long                  startTime;
-	private          long                  statsInterval      = 0L; // ns
-	private          long                  prevStatsTime;
-	private          long                  totalElapsedTime   = 0L;
-	private          long                  totalTimeSpent     = 0; // seconds
-	private          long                  frameCount         = 0;
-	private          double[]              fpsStore;
-	private          long                  statsCount         = 0;
-	private          double                averageFPS         = 0.0;
-	private          long                  framesSkipped      = 0L;
-	private          long                  totalFramesSkipped = 0L;
-	//	private DecimalFormat timedf = new DecimalFormat("0.####");  // 4 dp
-	private          double[]              upsStore;
-	private          double                averageUPS         = 0.0;
-	private          Font                  font;
-	private          FontMetrics           metrics;
-	private          InputAction           exitAction;
-	private          InputAction           pauseAction;
-	private          InputAction           toggleFullscreenAction;
-	
-	public GraphicsApplication()
-	{
+	private long startTime;
+	private long statsInterval = 0L; // ns
+	private long prevStatsTime;
+	private long totalElapsedTime = 0L;
+	private long totalTimeSpent = 0; // seconds
+	private long frameCount = 0;
+	private double[] fpsStore;
+	private long statsCount = 0;
+	private double averageFPS = 0.0;
+	private long framesSkipped = 0L;
+	private long totalFramesSkipped = 0L;
+	// private DecimalFormat timedf = new DecimalFormat("0.####"); // 4 dp
+	private double[] upsStore;
+	private double averageUPS = 0.0;
+	private Font font;
+	private FontMetrics metrics;
+	private InputAction exitAction;
+	private InputAction pauseAction;
+	private InputAction toggleFullscreenAction;
+
+	public GraphicsApplication() {
 	}
-	
-	public void start(Settings settings)
-	{
+
+	public void start(Settings settings) {
 		this.settings = settings;
 		// Acquiring the current graphics device and graphics configuration
-		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsEnvironment graphEnv = GraphicsEnvironment
+				.getLocalGraphicsEnvironment();
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
 		this.gc = graphDevice.getDefaultConfiguration();
 		this.graphicsFrame = new GraphicsFrame(this);
@@ -121,57 +131,56 @@ public abstract class GraphicsApplication implements Runnable
 //		// start the app
 		startThread();
 	}
-	
-	private void initFont()
-	{
+
+	private void initFont() {
 		this.font = new Font(FONT_NAME, Font.BOLD, 10);
 		this.metrics = graphicsFrame.getCanvas().getFontMetrics(this.font);
 	}
-	
-	private void initFrameBufferedImage()
-	{
+
+	private void initFrameBufferedImage() {
 		// TYPE_INT_ARGB, 4 bytes per pixel with alpha channel
 		// TYPE_INT_RGB, 4 bytes per pixel without alpha channel
-		// see https://stackoverflow.com/questions/32414617/how-to-decide-which-bufferedimage-image-type-to-use
-		this.bufferImage = new BufferedImage(this.settings.width, this.settings.height, BufferedImage.TYPE_INT_ARGB);
-		this.pixels = ((DataBufferInt) this.bufferImage.getRaster().getDataBuffer()).getData();
+		// see
+		// https://stackoverflow.com/questions/32414617/how-to-decide-which-bufferedimage-image-type-to-use
+		this.bufferImage = new BufferedImage(this.settings.width,
+				this.settings.height, BufferedImage.TYPE_INT_ARGB);
+		this.pixels = ((DataBufferInt) this.bufferImage.getRaster()
+				.getDataBuffer()).getData();
 	}
-	
-	Settings getSettings()
-	{
+
+	Settings getSettings() {
 		return settings;
 	}
-	
-	private void startThread()
-	{
+
+	private void startThread() {
 		if (renderThread == null || !isRunning) {
 			renderThread = new Thread(this);
 			renderThread.start();
 		}
 	}
-	
-	private Thread buildShutdownThread()
-	{
+
+	private Thread buildShutdownThread() {
 		return new ShutDownThread();
 	}
-	
+
 	// TODO APP HOOK ?
-	private void initInputManager()
-	{
+	private void initInputManager() {
 		inputManager = new InputManager(graphicsFrame.getCanvas());
 //		inputManager.setRelativeMouseMode(true);
 //		inputManager.setCursor(InputManager.INVISIBLE_CURSOR); // TODO mouse non resta invisible quando si passa in fullscreen?
-		exitAction = new InputAction("Exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
-		pauseAction = new InputAction("Pause", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
-		toggleFullscreenAction = new InputAction("Toogle Fullscreen", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		exitAction = new InputAction("Exit",
+				InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		pauseAction = new InputAction("Pause",
+				InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		toggleFullscreenAction = new InputAction("Toogle Fullscreen",
+				InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		inputManager.mapToKey(KeyEvent.VK_ESCAPE, exitAction);
 		inputManager.mapToKey(KeyEvent.VK_P, pauseAction);
 		inputManager.mapToKey(KeyEvent.VK_F1, toggleFullscreenAction);
 		recenterMouse();
 	}
-	
-	private void recenterMouse()
-	{
+
+	private void recenterMouse() {
 		if (inputManager.isRelativeMouseMode()) {
 			inputManager.recenterMouse();
 		} else {
@@ -184,13 +193,13 @@ public abstract class GraphicsApplication implements Runnable
 //	public InputManager getInputManager() {
 //		return inputManager;
 //	}
-	
+
 	// vedi ImagesLoader.java Chap6 code KJGP
 	public BufferedImage loadImage(String fnm)
-   /* Load the image from <fnm>, returning it as a BufferedImage
-      which is compatible with the graphics device being used.
-      Uses ImageIO.
-   */
+	/*
+	 * Load the image from <fnm>, returning it as a BufferedImage which is
+	 * compatible with the graphics device being used. Uses ImageIO.
+	 */
 	{
 		try {
 			/**********************************************************/
@@ -216,24 +225,24 @@ public abstract class GraphicsApplication implements Runnable
 			URL resource = getClass().getResource(fnm);
 			BufferedImage im = ImageIO.read(resource);
 			// convert the image to ARGB
-			// see https://stackoverflow.com/questions/27457517/how-to-change-the-image-type-of-a-bufferedimage-which-is-loaded-from-file
+			// see
+			// https://stackoverflow.com/questions/27457517/how-to-change-the-image-type-of-a-bufferedimage-which-is-loaded-from-file
 			if (im.getType() != bufferImage.getType()) {
-				BufferedImage im2 = new BufferedImage(im.getWidth(), im.getHeight(), bufferImage.getType());
+				BufferedImage im2 = new BufferedImage(im.getWidth(),
+						im.getHeight(), bufferImage.getType());
 				Graphics2D g = im2.createGraphics();
 				g.drawImage(im, 0, 0, im.getWidth(), im.getHeight(), null);
 				g.dispose();
 				im = im2;
 			}
 			return im;
-		}
-		catch (Exception ex) {
+		} catch (Exception ex) {
 			System.err.println("Load Image error for " + fnm + ":\n" + ex);
 			return null;
 		}
 	} // end of loadImage() using ImageIO
-	
-	public void writeImage(BufferedImage bi, String fnm, String format)
-	{
+
+	public void writeImage(BufferedImage bi, String fnm, String format) {
 		String imageFile = fnm + "." + format;
 		try {
 			File outFile = new File(imageFile);
@@ -241,16 +250,15 @@ public abstract class GraphicsApplication implements Runnable
 				throw new Exception("Unexpected error writing image");
 			}
 			System.out.println("File " + imageFile + " written.");
-		}
-		catch (Exception ex) {
-			System.err.println("Write Image error for " + imageFile + ":\n" + ex);
+		} catch (Exception ex) {
+			System.err
+					.println("Write Image error for " + imageFile + ":\n" + ex);
 		}
 	}
-	
+
 	// https://stackoverflow.com/questions/16364487/java-rendering-loop-and-logic-loop
 	@Override
-	public void run()
-	{ // thread run method
+	public void run() { // thread run method
 		long beforeTime, afterTime, timeDiff, sleepTime; // times are in ns
 		long overSleepTime = 0L;
 		int numDelays = 0;
@@ -268,12 +276,14 @@ public abstract class GraphicsApplication implements Runnable
 			timeDiff = afterTime - beforeTime;
 			sleepTime = (period - timeDiff) - overSleepTime; // ns
 			if (sleepTime > 0) { // time left in cycle
-				//System.out.println("sleepTime: " + (sleepTime/NANO_IN_MILLI));
+				// System.out.println("sleepTime: " +
+				// (sleepTime/NANO_IN_MILLI));
 				try {
-					Thread.sleep(sleepTime / NANO_IN_MILLI);//nano->ms
-					numDelays = 0;   // reset noDelays when sleep occurs // see section Sleep is like Yield https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
-				}
-				catch (InterruptedException ex) {
+					Thread.sleep(sleepTime / NANO_IN_MILLI);// nano->ms
+					numDelays = 0; // reset noDelays when sleep occurs // see
+									// section Sleep is like Yield
+									// https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
+				} catch (InterruptedException ex) {
 				}
 				overSleepTime = (System.nanoTime() - afterTime) - sleepTime;
 			} else { // sleepTime <= 0; the frame took longer than the period
@@ -287,9 +297,10 @@ public abstract class GraphicsApplication implements Runnable
 			}
 			beforeTime = System.nanoTime();
 
-            /* If frame animation is taking too long, update the state
-             without rendering it, to get the updates/sec nearer to
-             the required FPS. */
+			/*
+			 * If frame animation is taking too long, update the state without
+			 * rendering it, to get the updates/sec nearer to the required FPS.
+			 */
 			int skips = 0;
 			while ((excess > period) && (skips < MAX_FRAME_SKIPS)) {
 				// update state but don’t render
@@ -303,9 +314,8 @@ public abstract class GraphicsApplication implements Runnable
 		}
 		finishOff();
 	}
-	
-	private void update(long elapsedTime)
-	{
+
+	private void update(long elapsedTime) {
 		if (settings.showFps) {
 			graphicsFrame.reportAccelMemory();
 		}
@@ -314,15 +324,14 @@ public abstract class GraphicsApplication implements Runnable
 			updateState(elapsedTime);
 		}
 	}
-	
-	private void updateState(long elapsedTime)
-	{
+
+	private void updateState(long elapsedTime) {
 		appUpdate(elapsedTime);
 	}
-	
-	// vedi anche https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
-	protected void checkSystemInput()
-	{
+
+	// vedi anche
+	// https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
+	protected void checkSystemInput() {
 		if (pauseAction.isPressed()) {
 			isPaused = !isPaused;
 		}
@@ -330,16 +339,17 @@ public abstract class GraphicsApplication implements Runnable
 			stopApp();
 		}
 		if (toggleFullscreenAction.isPressed()) {
-			toggleFullscreenAction.release(); // to avoid a subtle bug of keyReleased not invoked after switching to fs...
+			toggleFullscreenAction.release(); // to avoid a subtle bug of
+												// keyReleased not invoked after
+												// switching to fs...?
 			graphicsFrame.toggleFullscreen();
 			inputManager.add2Component(graphicsFrame.getCanvas()); // TODO move?
 			recenterMouse();
 		}
 		// ...
 	}
-	
-	private void render()
-	{
+
+	private void render() {
 		// use active rendering
 		try {
 			Canvas canvas = graphicsFrame.getCanvas();
@@ -347,12 +357,12 @@ public abstract class GraphicsApplication implements Runnable
 			Graphics2D g2d = null;
 			try {
 				g2d = (Graphics2D) bufferStrategy.getDrawGraphics();
-				draw(); // draw on buffered image frame
-				// blit
-				g2d.drawImage(bufferImage, 0, 0, canvas.getWidth(), canvas.getHeight(), null);
+				appDraw(); // draw on buffered image frame
+				// blitting
+				g2d.drawImage(bufferImage, 0, 0, canvas.getWidth(),
+						canvas.getHeight(), null);
 				showStats(g2d);
-			}
-			finally {
+			} finally {
 				if (g2d != null) {
 					g2d.dispose();
 				}
@@ -366,93 +376,90 @@ public abstract class GraphicsApplication implements Runnable
 			// Sync the display on some systems.
 			// (on Linux, this fixes event queue problems)
 			Toolkit.getDefaultToolkit().sync();
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			isRunning = false;
 		}
 	}
-	
-	private void draw()
-	{
-		appDraw();
-	}
-	
-	protected void showStats(Graphics2D g)
-	{
+
+	protected void showStats(Graphics2D g) {
 //		appLogic.showStats(); 	// TODO APP_HOOK
 		if (settings.showFps) {
 			g.setFont(font);
 			g.setColor(Color.YELLOW);
-			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			//		g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
-			String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
-			g.drawString(debugInfo, 2, metrics.getHeight());  // was (10,55)
+			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			// g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
+			String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", "
+					+ df.format(averageUPS);
+			g.drawString(debugInfo, 2, metrics.getHeight()); // was (10,55)
 		}
 	}
-	
-	private boolean canUpdateState()
-	{
+
+	private boolean canUpdateState() {
 		return !isPaused && !appOver;
 	}
-	
-	/* Tasks to do before terminating. Called at end of run()
-	   and via the shutdown hook in readyForTermination().
 
-	   The call at the end of run() is not really necessary, but
-	   included for safety. The flag stops the code being called
-	   twice.
-	*/
-	protected void finishOff()
-	{
+	/*
+	 * Tasks to do before terminating. Called at end of run() and via the
+	 * shutdown hook in readyForTermination().
+	 * 
+	 * The call at the end of run() is not really necessary, but included for
+	 * safety. The flag stops the code being called twice.
+	 */
+	protected void finishOff() {
 		// System.out.println("finishOff");
 		if (!finishedOff) {
 			finishedOff = true;
-			graphicsFrame.restoreScreen(); // make sure we restore the video mode before exiting
+			graphicsFrame.restoreScreen(); // make sure we restore the video
+											// mode before exiting
 			appFinishOff();
 			printFinalStats();
 			System.exit(0);
 		}
 	}
-	
-	/* The statistics:
-     - the summed periods for all the iterations in this interval
-       (period is the amount of time a single frame iteration should take),
-       the actual elapsed time in this interval,
-       the error between these two numbers;
 
-     - the total frame count, which is the total number of calls to run();
-
-     - the frames skipped in this interval, the total number of frames
-       skipped. A frame skip is a state update without a corresponding render;
-
-     - the FPS (frames/sec) and UPS (updates/sec) for this interval,
-       the average FPS & UPS over the last NUM_FPSs intervals.
-
-    	The data is collected every MAX_STATS_INTERVAL  (1 sec).
-    */
-	private void updateStats()
-	{
+	/*
+	 * The statistics: - the summed periods for all the iterations in this
+	 * interval (period is the amount of time a single frame iteration should
+	 * take), the actual elapsed time in this interval, the error between these
+	 * two numbers;
+	 * 
+	 * - the total frame count, which is the total number of calls to run();
+	 * 
+	 * - the frames skipped in this interval, the total number of frames
+	 * skipped. A frame skip is a state update without a corresponding render;
+	 * 
+	 * - the FPS (frames/sec) and UPS (updates/sec) for this interval, the
+	 * average FPS & UPS over the last NUM_FPSs intervals.
+	 * 
+	 * The data is collected every MAX_STATS_INTERVAL (1 sec).
+	 */
+	private void updateStats() {
 		frameCount++;
 		statsInterval += period;
-		if (statsInterval >= UPDATE_STATS_INTERVAL) {     // record stats every MAX_STATS_INTERVAL
+		if (statsInterval >= UPDATE_STATS_INTERVAL) { // record stats every
+														// MAX_STATS_INTERVAL
 			long timeNow = System.nanoTime();
-			totalTimeSpent = (timeNow - startTime) / NANO_IN_SEC;  // ns --> secs
-			long realElapsedTime = timeNow - prevStatsTime;   // time since last stats collection
+			totalTimeSpent = (timeNow - startTime) / NANO_IN_SEC; // ns --> secs
+			long realElapsedTime = timeNow - prevStatsTime; // time since last
+															// stats collection
 			totalElapsedTime += realElapsedTime;
-			double timingError = ((double) (realElapsedTime - statsInterval) / statsInterval) * 100.0;
+//			double timingError = ((double) (realElapsedTime - statsInterval)
+//					/ statsInterval) * 100.0;
 			totalFramesSkipped += framesSkipped;
-			double actualFPS = 0.0;     // calculate the latest FPS and UPS
+			double actualFPS = 0.0; // calculate the latest FPS and UPS
 			double actualUPS = 0.0;
 			if (totalElapsedTime > 0) {
-				actualFPS = (((double) frameCount / totalElapsedTime) * NANO_IN_SEC);
-				actualUPS = (((double) (frameCount + totalFramesSkipped) / totalElapsedTime) * NANO_IN_SEC);
+				actualFPS = (((double) frameCount / totalElapsedTime)
+						* NANO_IN_SEC);
+				actualUPS = (((double) (frameCount + totalFramesSkipped)
+						/ totalElapsedTime) * NANO_IN_SEC);
 			}
-			// store the latest FPS and UPS
 			fpsStore[(int) statsCount % NUM_AVG_FPS] = actualFPS;
 			upsStore[(int) statsCount % NUM_AVG_FPS] = actualUPS;
 			statsCount++;
-			double totalFPS = 0.0;     // total the stored FPSs and UPSs
+			double totalFPS = 0.0; // total the stored FPSs and UPSs
 			double totalUPS = 0.0;
 			for (int i = 0; i < NUM_AVG_FPS; i++) {
 				totalFPS += fpsStore[i];
@@ -473,16 +480,16 @@ public abstract class GraphicsApplication implements Runnable
 //					df.format(actualFPS) + " " + df.format(averageFPS) + " afps; " +
 //					df.format(actualUPS) + " " + df.format(averageUPS) + " aups");
 			framesSkipped = 0;
+			statsInterval = 0; // reset
 			prevStatsTime = timeNow;
-			statsInterval = 0L;   // reset
 		}
 	}
-	
-	private void printFinalStats()
-	{
+
+	private void printFinalStats() {
 		System.out.println();
 		System.out.println("FINAL STATS:");
-		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
+		System.out.println(
+				"Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
 		System.out.println("Time Spent: " + totalTimeSpent + " secs");
@@ -490,57 +497,51 @@ public abstract class GraphicsApplication implements Runnable
 		System.out.flush();
 //		System.err.flush();
 	}
-	
+
 	// called when the JFrame is activated / deiconified
-	public void resumeApp()
-	{
+	public void resumeApp() {
 		isPaused = false;
 	}
-	
+
 	// called when the JFrame is deactivated / iconified
-	public void pauseApp()
-	{
+	public void pauseApp() {
 		isPaused = true;
 	}
-	
+
 	// called when the JFrame is closing
-	public void stopApp()
-	{
+	public void stopApp() {
 		isRunning = false;
 	}
-	
-	public GraphicsDevice getGraphDevice()
-	{
+
+	public GraphicsDevice getGraphDevice() {
 		return graphDevice;
 	}
-	
-	public GraphicsConfiguration getGraphicsConfiguration()
-	{
+
+	public GraphicsConfiguration getGraphicsConfiguration() {
 		return gc;
 	}
-	
+
 	/* SPECIFIC APP LOGIC */
-	
-	protected void appDraw()
-	{
+
+	protected void appDraw() {
 		drawBackground();
 	}
-	
-	protected void drawBackground()
-	{
+
+	protected void drawBackground() {
 		Graphics2D gBuffer = (Graphics2D) bufferImage.getGraphics();
 		gBuffer.setColor(Color.BLACK);
 		gBuffer.fillRect(0, 0, bufferImage.getWidth(), bufferImage.getHeight());
 	}
-	
+
 	protected abstract void appInit();
-	
+
 	protected abstract void appUpdate(long elapsedTime);
-	
+
 	protected abstract void appFinishOff();
-	
+
 	protected abstract void appPrintFinalStats();
 }
+
 //	protected void draw() {
 ////		int redRgb = Color.RED.getRGB();
 ////		int height = bufferedImage.getHeight();
