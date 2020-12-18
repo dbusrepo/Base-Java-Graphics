@@ -19,6 +19,9 @@ import java.net.URL;
 import java.text.DecimalFormat;
 
 import javax.imageio.ImageIO;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 
 import base.graphics.app.input.InputAction;
 import base.graphics.app.input.InputManager;
@@ -73,7 +76,7 @@ public abstract class GraphicsApplication implements Runnable {
 	/******************************************************************************************************************/
 
 	private Settings settings;
-	private GraphicsFrame graphicsFrame;
+	private GraphicsFrame graphFrame;
 	private GraphicsDevice graphDevice;
 	private GraphicsConfiguration gc;
 	private Thread renderThread = null;
@@ -112,16 +115,10 @@ public abstract class GraphicsApplication implements Runnable {
 				.getLocalGraphicsEnvironment();
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
 		this.gc = graphDevice.getDefaultConfiguration();
-		this.graphicsFrame = new GraphicsFrame(this);
-		initFrameBufferedImage();
-		// initialise timing elements
-		this.fpsStore = new double[NUM_AVG_FPS];
-		this.upsStore = new double[NUM_AVG_FPS];
-		for (int i = 0; i < NUM_AVG_FPS; i++) {
-			fpsStore[i] = 0.0;
-			upsStore[i] = 0.0;
-		}
-		this.period = NANO_IN_SEC / this.settings.targetFps;
+		this.graphFrame = new GraphicsFrame(this);
+		this.graphFrame.init();
+		initBufferedImage();
+		initFpsData();
 		initFont();
 		initInputManager();
 		appInit();
@@ -132,12 +129,22 @@ public abstract class GraphicsApplication implements Runnable {
 		startThread();
 	}
 
-	private void initFont() {
-		this.font = new Font(FONT_NAME, Font.BOLD, 10);
-		this.metrics = graphicsFrame.getCanvas().getFontMetrics(this.font);
+	private void initFpsData() {
+		this.fpsStore = new double[NUM_AVG_FPS];
+		this.upsStore = new double[NUM_AVG_FPS];
+		for (int i = 0; i < NUM_AVG_FPS; i++) {
+			fpsStore[i] = 0.0;
+			upsStore[i] = 0.0;
+		}
+		this.period = NANO_IN_SEC / this.settings.targetFps;
 	}
 
-	private void initFrameBufferedImage() {
+	private void initFont() {
+		this.font = new Font(FONT_NAME, Font.BOLD, 10);
+		this.metrics = graphFrame.getCanvas().getFontMetrics(this.font);
+	}
+
+	private void initBufferedImage() {
 		// TYPE_INT_ARGB, 4 bytes per pixel with alpha channel
 		// TYPE_INT_RGB, 4 bytes per pixel without alpha channel
 		// see
@@ -165,7 +172,7 @@ public abstract class GraphicsApplication implements Runnable {
 
 	// TODO APP HOOK ?
 	private void initInputManager() {
-		inputManager = new InputManager(graphicsFrame.getCanvas());
+		inputManager = new InputManager(graphFrame.getCanvas());
 //		inputManager.setRelativeMouseMode(true);
 //		inputManager.setCursor(InputManager.INVISIBLE_CURSOR); // TODO mouse non resta invisible quando si passa in fullscreen?
 		exitAction = new InputAction("Exit",
@@ -317,7 +324,7 @@ public abstract class GraphicsApplication implements Runnable {
 
 	private void update(long elapsedTime) {
 		if (settings.showFps) {
-			graphicsFrame.reportAccelMemory();
+			graphFrame.reportAccelMemory();
 		}
 		checkSystemInput(); // check input that can happen whether paused or not
 		if (canUpdateState()) {
@@ -342,8 +349,8 @@ public abstract class GraphicsApplication implements Runnable {
 			toggleFullscreenAction.release(); // to avoid a subtle bug of
 												// keyReleased not invoked after
 												// switching to fs...?
-			graphicsFrame.toggleFullscreen();
-			inputManager.add2Component(graphicsFrame.getCanvas()); // TODO move?
+			graphFrame.toggleFullscreen();
+			inputManager.add2Component(graphFrame.getCanvas()); // TODO move?
 			recenterMouse();
 		}
 		// ...
@@ -352,7 +359,7 @@ public abstract class GraphicsApplication implements Runnable {
 	private void render() {
 		// use active rendering
 		try {
-			Canvas canvas = graphicsFrame.getCanvas();
+			Canvas canvas = graphFrame.getCanvas();
 			BufferStrategy bufferStrategy = canvas.getBufferStrategy();
 			Graphics2D g2d = null;
 			try {
@@ -411,8 +418,8 @@ public abstract class GraphicsApplication implements Runnable {
 		// System.out.println("finishOff");
 		if (!finishedOff) {
 			finishedOff = true;
-			graphicsFrame.restoreScreen(); // make sure we restore the video
-											// mode before exiting
+			graphFrame.restoreScreen(); // make sure we restore the video
+										// mode before exiting
 			appFinishOff();
 			printFinalStats();
 			System.exit(0);
@@ -521,7 +528,7 @@ public abstract class GraphicsApplication implements Runnable {
 		return gc;
 	}
 
-	/* SPECIFIC APP LOGIC */
+	/* APP LOGIC */
 
 	protected void appDraw() {
 		drawBackground();
@@ -540,6 +547,18 @@ public abstract class GraphicsApplication implements Runnable {
 	protected abstract void appFinishOff();
 
 	protected abstract void appPrintFinalStats();
+
+	protected void initMenu() {
+		var menuBar = new JMenuBar();
+		var fileMenu = new JMenu("File");
+		fileMenu.setMnemonic(KeyEvent.VK_F);
+		var exitMenuItem = new JMenuItem("Exit");
+		exitMenuItem.setToolTipText("Exit Application");
+		fileMenu.add(exitMenuItem);
+		menuBar.add(fileMenu);
+		this.graphFrame.setJMenuBar(menuBar);
+		this.graphFrame.pack();
+	}
 }
 
 //	protected void draw() {

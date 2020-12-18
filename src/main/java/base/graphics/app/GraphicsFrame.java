@@ -19,9 +19,9 @@ class GraphicsFrame extends JFrame implements WindowListener {
 
 	private static final long serialVersionUID = 1L;
 
-	private final GraphicsApplication graphApp;
-	private final Settings settings;
-	private final GraphicsDevice graphDevice;
+	private GraphicsApplication graphApp;
+	private Settings settings;
+	private GraphicsDevice graphDevice;
 	// private BufferStrategy bufferStrategy;
 	private final DecimalFormat df = new DecimalFormat("0.##"); // 2 dp
 	private int accelMemory; // for reporting accl. memory usage
@@ -30,6 +30,9 @@ class GraphicsFrame extends JFrame implements WindowListener {
 	public GraphicsFrame(GraphicsApplication graphApp) {
 		super(graphApp.getGraphicsConfiguration());
 		this.graphApp = graphApp;
+	}
+
+	protected void init() {
 		this.settings = graphApp.getSettings();
 		this.graphDevice = graphApp.getGraphDevice();
 		if (settings.showCapabilities) {
@@ -38,13 +41,10 @@ class GraphicsFrame extends JFrame implements WindowListener {
 //		setDefaultLookAndFeelDecorated(true);
 		setTitle(settings.title); // TODO
 		addWindowListener(this);
-		initFrame();
-	}
 
-	private void initFrame() {
 		setUndecorated(settings.fullScreen); // no menu bar, borders, etc. or
 												// Swing components? // TODO
-		setIgnoreRepaint(true); // turn off all paint events since doing active
+		setIgnoreRepaint(true); // turn off all paint events doing active
 								// rendering
 		setExtendedState(JFrame.NORMAL);
 		initCanvas();
@@ -59,6 +59,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		initBufferStrategy();
 		setVisible(true); // done in graphics app
 		setFocusable(true);
+		graphApp.initMenu();
 		requestFocus();
 	}
 
@@ -131,7 +132,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		}
 		restoreScreen();
 		settings.toggleFullscreen();
-		initFrame();
+		init();
 	}
 
 	/**
