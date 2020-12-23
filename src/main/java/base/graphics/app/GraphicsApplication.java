@@ -70,7 +70,7 @@ public abstract class GraphicsApplication implements Runnable {
 	/******************************************************************************************************************/
 
 	protected InputManager inputManager;
-	protected BufferedImage bufferImage;
+	protected BufferedImage bufferedImage;
 	protected int[] pixels; // buffer as int[]
 
 	/******************************************************************************************************************/
@@ -149,9 +149,9 @@ public abstract class GraphicsApplication implements Runnable {
 		// TYPE_INT_RGB, 4 bytes per pixel without alpha channel
 		// see
 		// https://stackoverflow.com/questions/32414617/how-to-decide-which-bufferedimage-image-type-to-use
-		this.bufferImage = new BufferedImage(this.settings.width,
+		this.bufferedImage = new BufferedImage(this.settings.width,
 				this.settings.height, BufferedImage.TYPE_INT_ARGB);
-		this.pixels = ((DataBufferInt) this.bufferImage.getRaster()
+		this.pixels = ((DataBufferInt) this.bufferedImage.getRaster()
 				.getDataBuffer()).getData();
 	}
 
@@ -234,9 +234,9 @@ public abstract class GraphicsApplication implements Runnable {
 			// convert the image to ARGB
 			// see
 			// https://stackoverflow.com/questions/27457517/how-to-change-the-image-type-of-a-bufferedimage-which-is-loaded-from-file
-			if (im.getType() != bufferImage.getType()) {
+			if (im.getType() != bufferedImage.getType()) {
 				BufferedImage im2 = new BufferedImage(im.getWidth(),
-						im.getHeight(), bufferImage.getType());
+						im.getHeight(), bufferedImage.getType());
 				Graphics2D g = im2.createGraphics();
 				g.drawImage(im, 0, 0, im.getWidth(), im.getHeight(), null);
 				g.dispose();
@@ -364,9 +364,9 @@ public abstract class GraphicsApplication implements Runnable {
 			Graphics2D g2d = null;
 			try {
 				g2d = (Graphics2D) bufferStrategy.getDrawGraphics();
-				appDraw(); // draw on buffered image frame
+				draw(); // draw on buffered image frame
 				// blitting
-				g2d.drawImage(bufferImage, 0, 0, canvas.getWidth(),
+				g2d.drawImage(bufferedImage, 0, 0, canvas.getWidth(),
 						canvas.getHeight(), null);
 				showStats(g2d);
 			} finally {
@@ -530,14 +530,15 @@ public abstract class GraphicsApplication implements Runnable {
 
 	/* APP LOGIC */
 
-	protected void appDraw() {
+	protected void draw() {
 		drawBackground();
 	}
 
 	protected void drawBackground() {
-		Graphics2D gBuffer = (Graphics2D) bufferImage.getGraphics();
+		Graphics2D gBuffer = (Graphics2D) bufferedImage.getGraphics();
 		gBuffer.setColor(Color.BLACK);
-		gBuffer.fillRect(0, 0, bufferImage.getWidth(), bufferImage.getHeight());
+		gBuffer.fillRect(0, 0, bufferedImage.getWidth(),
+				bufferedImage.getHeight());
 	}
 
 	protected abstract void appInit();
