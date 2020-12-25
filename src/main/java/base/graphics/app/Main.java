@@ -3,7 +3,7 @@ package base.graphics.app;
 public class Main extends GraphicsApplication {
 	public Main() {
 		Settings settings = new Settings();
-		settings.title = "java graphics app";
+		settings.title = "Java graphics app";
 		start(settings);
 	}
 

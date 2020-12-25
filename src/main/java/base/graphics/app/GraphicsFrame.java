@@ -4,7 +4,6 @@ import java.awt.BufferCapabilities;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.DisplayMode;
-import java.awt.EventQueue;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
@@ -90,11 +89,12 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		 * that the getBufferStrategy() call will get the correct details.
 		 */
 		try {
-			EventQueue.invokeAndWait(new Runnable() {
-				public void run() {
-					canvas.createBufferStrategy(settings.numBuffers);
-				}
-			});
+			canvas.createBufferStrategy(settings.numBuffers);
+//			EventQueue.invokeAndWait(new Runnable() {
+//				public void run() {
+////					canvas.createBufferStrategy(settings.numBuffers);
+//				}
+//			});
 		} catch (Exception e) {
 			System.out.println("Error while creating buffer strategy");
 			System.exit(0);
