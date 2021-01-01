@@ -22,6 +22,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.SwingUtilities;
 
 import base.graphics.app.input.InputAction;
 import base.graphics.app.input.InputManager;
@@ -128,6 +129,15 @@ public abstract class GraphicsApplication implements Runnable {
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
 		this.gc = graphDevice.getDefaultConfiguration();
 		this.graphFrame = new GraphicsFrame(this);
+		try {
+			SwingUtilities.invokeAndWait(() -> {
+				this.graphFrame.init();
+			});
+		} catch (Exception e) {
+			System.out.println("Error while initializing the graphics frame");
+			e.printStackTrace();
+			System.exit(0);
+		}
 	}
 
 	private void startThread() {

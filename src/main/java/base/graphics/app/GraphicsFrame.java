@@ -29,7 +29,6 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		super(graphApp.getGraphicsConfiguration());
 		graphApp.setGraphFrame(this);
 		this.graphApp = graphApp;
-		init();
 	}
 
 	protected void init() {
@@ -94,7 +93,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 ////					canvas.createBufferStrategy(settings.numBuffers);
 //				}
 //			});
-		} catch (Exception e) {
+		} catch (Exception ex) {
 			System.out.println("Error while creating buffer strategy");
 			System.exit(0);
 		}
@@ -193,6 +192,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		return false;
 	}
 
+	@SuppressWarnings("unused")
 	private void showCurrentMode() {
 		DisplayMode dm = graphDevice.getDisplayMode();
 		System.out.println("Current Display Mode: (" + displayModePrintStr(dm) + ")  ");
