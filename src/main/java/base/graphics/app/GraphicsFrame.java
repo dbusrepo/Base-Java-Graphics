@@ -58,7 +58,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		initBufferStrategy();
 		setVisible(true); // done in graphics app
 		setFocusable(true);
-		graphApp.initMenu();
+		graphApp.appInitMenu();
 		requestFocus();
 	}
 
@@ -98,7 +98,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 			System.exit(0);
 		}
 		try { // sleep to give time for the buffer strategy to be carried out
-			Thread.sleep(500); // 0.5 sec
+			Thread.sleep(100); // 0.5 sec
 		} catch (InterruptedException ex) {
 		}
 	}

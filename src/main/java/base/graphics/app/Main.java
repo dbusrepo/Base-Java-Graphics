@@ -1,31 +1,11 @@
 package base.graphics.app;
 
-public class Main extends GraphicsApplication {
+public class Main extends GraphicsAppSoftRendering {
 
 	public Main() {
 		Settings settings = new Settings();
 		settings.title = "Java graphics app";
 		start(settings);
-	}
-
-	@Override
-	protected void appInit() {
-
-	}
-
-	@Override
-	protected void appUpdate(long elapsedTime) {
-
-	}
-
-	@Override
-	protected void appFinishOff() {
-
-	}
-
-	@Override
-	protected void appPrintFinalStats() {
-
 	}
 
 	public static void main(String[] args) {

@@ -13,7 +13,6 @@ import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.net.URL;
 import java.text.DecimalFormat;
@@ -71,8 +70,6 @@ public abstract class GraphicsApplication implements Runnable {
 	/******************************************************************************************************************/
 
 	protected InputManager inputManager;
-	protected BufferedImage bufferedImage;
-	protected int[] pixels; // buffer as int[]
 
 	/******************************************************************************************************************/
 
@@ -113,7 +110,6 @@ public abstract class GraphicsApplication implements Runnable {
 	public void start(Settings settings) {
 		this.settings = settings;
 		initGraphics();
-		initBufferedImage();
 		initFpsData();
 		initFont();
 		initInputManager();
@@ -162,23 +158,6 @@ public abstract class GraphicsApplication implements Runnable {
 		this.metrics = graphFrame.getCanvas().getFontMetrics(this.font);
 	}
 
-	private void initBufferedImage() {
-		// TYPE_INT_ARGB, 4 bytes per pixel with alpha channel
-		// TYPE_INT_RGB, 4 bytes per pixel without alpha channel
-		// see
-		// https://stackoverflow.com/questions/32414617/how-to-decide-which-bufferedimage-image-type-to-use
-		this.bufferedImage = new BufferedImage(this.settings.width, this.settings.height, BufferedImage.TYPE_INT_ARGB);
-		this.pixels = ((DataBufferInt) this.bufferedImage.getRaster().getDataBuffer()).getData();
-	}
-
-	Settings getSettings() {
-		return settings;
-	}
-
-	void setGraphFrame(GraphicsFrame graphFrame) {
-		this.graphFrame = graphFrame;
-	}
-
 	private Thread buildShutdownThread() {
 		return new ShutDownThread();
 	}
@@ -204,70 +183,6 @@ public abstract class GraphicsApplication implements Runnable {
 			inputManager.setRelativeMouseMode(true);
 			inputManager.recenterMouse();
 			inputManager.setRelativeMouseMode(false);
-		}
-	}
-
-//	public InputManager getInputManager() {
-//		return inputManager;
-//	}
-
-	// vedi ImagesLoader.java Chap6 code KJGP
-	public BufferedImage loadImage(String fnm)
-	/*
-	 * Load the image from <fnm>, returning it as a BufferedImage which is compatible with the graphics device being
-	 * used. Uses ImageIO.
-	 */
-	{
-		try {
-			/**********************************************************/
-//			URL resource = getClass().getResource(fnm);
-//			BufferedImage im = ImageIO.read(resource);
-			// An image returned from ImageIO in J2SE <= 1.4.2 is
-			// _not_ a managed image, but is after copying!
-//			int transparency = im.getColorModel().getTransparency();
-//			BufferedImage copy = gc.createCompatibleImage(
-//					im.getWidth(), im.getHeight(),
-//					transparency);
-//			// create a graphics context
-//			Graphics2D g2d = copy.createGraphics();
-//			// g2d.setComposite(AlphaComposite.Src);
-//
-//			// reportTransparency(IMAGE_DIR + fnm, transparency);
-//
-//			// copy image
-//			g2d.drawImage(im, 0, 0, null);
-//			g2d.dispose();
-//			return copy;
-			/**********************************************************/
-			URL resource = getClass().getResource(fnm);
-			BufferedImage im = ImageIO.read(resource);
-			// convert the image to ARGB
-			// see
-			// https://stackoverflow.com/questions/27457517/how-to-change-the-image-type-of-a-bufferedimage-which-is-loaded-from-file
-			if (im.getType() != bufferedImage.getType()) {
-				BufferedImage im2 = new BufferedImage(im.getWidth(), im.getHeight(), bufferedImage.getType());
-				Graphics2D g = im2.createGraphics();
-				g.drawImage(im, 0, 0, im.getWidth(), im.getHeight(), null);
-				g.dispose();
-				im = im2;
-			}
-			return im;
-		} catch (Exception ex) {
-			System.err.println("Load Image error for " + fnm + ":\n" + ex);
-			return null;
-		}
-	}
-
-	public void writeImage(BufferedImage bi, String fnm, String format) {
-		String imageFile = fnm + "." + format;
-		try {
-			File outFile = new File(imageFile);
-			if (!ImageIO.write(bi, format, outFile)) {
-				throw new Exception("Unexpected error writing image");
-			}
-			System.out.println("File " + imageFile + " written.");
-		} catch (Exception ex) {
-			System.err.println("Write Image error for " + imageFile + ":\n" + ex);
 		}
 	}
 
@@ -344,7 +259,6 @@ public abstract class GraphicsApplication implements Runnable {
 		appUpdate(elapsedTime);
 	}
 
-	// vedi anche
 	// https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
 	protected void checkSystemInput() {
 		if (pauseAction.isPressed()) {
@@ -366,31 +280,17 @@ public abstract class GraphicsApplication implements Runnable {
 
 	private void render() {
 		try {
-			updateImage();
-			blitImage();
+			drawFrame();
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			isRunning = false;
 		}
 	}
 
-	private void updateImage() {
-		Graphics2D g = null;
-		try {
-			g = bufferedImage.createGraphics();
-			appDrawImage(g);
-		} finally {
-			if (g != null) {
-				g.dispose();
-			}
-		}
-	}
-
 	// see https://docs.oracle.com/javase/7/docs/api/java/awt/image/BufferStrategy.html
-	private void blitImage() {
+	private void drawFrame() {
 		Canvas canvas = graphFrame.getCanvas();
 		BufferStrategy strategy = canvas.getBufferStrategy();
-		// Render single frame
 		do {
 			// The following loop ensures that the contents of the drawing buffer
 			// are consistent in case the underlying surface was recreated
@@ -401,7 +301,7 @@ public abstract class GraphicsApplication implements Runnable {
 				try {
 					// Render to graphics
 					g = (Graphics2D) strategy.getDrawGraphics();
-					g.drawImage(bufferedImage, 0, 0, canvas.getWidth(), canvas.getHeight(), null);
+					appDrawCanvas(g);
 					showStats(g);
 				} finally {
 					// Dispose the graphics
@@ -411,7 +311,6 @@ public abstract class GraphicsApplication implements Runnable {
 				}
 				// Repeat the rendering if the drawing buffer contents were restored
 			} while (strategy.contentsRestored());
-
 			// Display the buffer
 			strategy.show();
 			// Sync the display on some systems. (on Linux, this fixes event queue problems)
@@ -544,6 +443,20 @@ public abstract class GraphicsApplication implements Runnable {
 		isRunning = false;
 	}
 
+	/* ACC/MUT */
+
+	public Settings getSettings() {
+		return settings;
+	}
+
+	public void setGraphFrame(GraphicsFrame graphFrame) {
+		this.graphFrame = graphFrame;
+	}
+
+	public Canvas getCanvas() {
+		return graphFrame.getCanvas();
+	}
+
 	public GraphicsDevice getGraphDevice() {
 		return graphDevice;
 	}
@@ -552,26 +465,87 @@ public abstract class GraphicsApplication implements Runnable {
 		return gc;
 	}
 
-	protected void drawImageBackground(Graphics2D g) {
-		g.setBackground(Color.BLACK);
-		g.clearRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+	/* IMAGE IO */
+
+	// vedi ImagesLoader.java Chap6 code KJGP
+	public BufferedImage loadImage(String fnm, int imgType)
+	/*
+	 * Load the image from <fnm>, returning it as a BufferedImage which is compatible with the graphics device being
+	 * used. Uses ImageIO.
+	 */
+	{
+		try {
+			/**********************************************************/
+//				URL resource = getClass().getResource(fnm);
+//				BufferedImage im = ImageIO.read(resource);
+			// An image returned from ImageIO in J2SE <= 1.4.2 is
+			// _not_ a managed image, but is after copying!
+//				int transparency = im.getColorModel().getTransparency();
+//				BufferedImage copy = gc.createCompatibleImage(
+//						im.getWidth(), im.getHeight(),
+//						transparency);
+//				// create a graphics context
+//				Graphics2D g2d = copy.createGraphics();
+//				// g2d.setComposite(AlphaComposite.Src);
+			//
+//				// reportTransparency(IMAGE_DIR + fnm, transparency);
+			//
+//				// copy image
+//				g2d.drawImage(im, 0, 0, null);
+//				g2d.dispose();
+//				return copy;
+			/**********************************************************/
+			URL resource = getClass().getResource(fnm);
+			BufferedImage im = ImageIO.read(resource);
+			// convert the image to ARGB
+			// https://stackoverflow.com/questions/27457517/how-to-change-the-image-type-of-a-bufferedimage-which-is-loaded-from-file
+			if (im.getType() != imgType) {
+				BufferedImage im2 = new BufferedImage(im.getWidth(), im.getHeight(), imgType);
+				Graphics2D g = im2.createGraphics();
+				g.drawImage(im, 0, 0, im.getWidth(), im.getHeight(), null);
+				g.dispose();
+				im = im2;
+			}
+			return im;
+		} catch (Exception ex) {
+			System.err.println("Load Image error for " + fnm + ":\n" + ex);
+			return null;
+		}
+	}
+
+	public void writeImage(BufferedImage bi, String fnm, String format) {
+		String imageFile = fnm + "." + format;
+		try {
+			File outFile = new File(imageFile);
+			if (!ImageIO.write(bi, format, outFile)) {
+				throw new Exception("Unexpected error writing image");
+			}
+			System.out.println("File " + imageFile + " written.");
+		} catch (Exception ex) {
+			System.err.println("Write Image error for " + imageFile + ":\n" + ex);
+		}
 	}
 
 	/* APP LOGIC METHODS */
 
-	protected void appDrawImage(Graphics2D g) {
-		drawImageBackground(g);
+	protected void appDrawCanvas(Graphics2D g) {
+		g.setBackground(Color.BLACK);
+		g.clearRect(0, 0, getCanvas().getWidth(), getCanvas().getHeight());
 	}
 
-	protected abstract void appInit();
+	protected void appInit() {
+	}
 
-	protected abstract void appUpdate(long elapsedTime);
+	protected void appUpdate(long elapsedTime) {
+	}
 
-	protected abstract void appFinishOff();
+	protected void appFinishOff() {
+	}
 
-	protected abstract void appPrintFinalStats();
+	protected void appPrintFinalStats() {
+	}
 
-	protected void initMenu() {
+	protected void appInitMenu() {
 		var menuBar = new JMenuBar();
 		var fileMenu = new JMenu("File");
 		fileMenu.setMnemonic(KeyEvent.VK_F);
@@ -582,41 +556,5 @@ public abstract class GraphicsApplication implements Runnable {
 		this.graphFrame.setJMenuBar(menuBar);
 		this.graphFrame.pack();
 	}
-}
 
-//	protected void draw() {
-////		int redRgb = Color.RED.getRGB();
-////		int height = bufferedImage.getHeight();
-////		int width = bufferedImage.getWidth();
-////		for (int y = 0; y != height; ++y) {
-////			for (int x = 0; x != width; ++x) {
-////				bufferedImage.setRGB(x, y, redRgb);
-////			}
-////		}
-//
-////		int numPixels = bufferedImage.getWidth() * bufferedImage.getHeight();
-////		for (int c = numPixels, i = 0; c != 0; --c) {
-////			buffer[i++] = redRgb;
-////		}
-//		// or this...
-////		for (int i = 0; i != numPixels; ++i)
-////			buffer[i] = redRgb;
-//	}
-//		// fill back buffer
-//		Graphics2D gBuffer = (Graphics2D) bufferedImage.getGraphics();
-//		gBuffer.setColor(Color.BLACK);
-//		gBuffer.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
-//
-//		Random rand = new Random();
-//		gBuffer.setColor(Color.red);
-//		int w = bufferedImage.getWidth();
-//		int h = bufferedImage.getHeight();
-//		for (int i = 0; i <= 1000; i++) {
-//			int x0 = Math.abs(rand.nextInt()) % w;
-//			int y0 = Math.abs(rand.nextInt()) % h;
-//			int x1 = Math.abs(rand.nextInt()) % w;
-//			int y1 = Math.abs(rand.nextInt()) % h;
-//			gBuffer.drawLine(x0, y0, x1, y1);
-//		}
-//		// Note: render only if (!isPaused && !appOver) ? // see section Inefficient Pausing https://fivedots.coe.psu.ac.th/~ad/jg/ch1/readers.html
-//	}
+}
