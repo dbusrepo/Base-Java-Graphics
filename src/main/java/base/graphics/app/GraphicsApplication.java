@@ -77,6 +77,7 @@ public abstract class GraphicsApplication implements Runnable {
 
 	private Settings settings;
 	private GraphicsFrame graphFrame;
+
 	private GraphicsDevice graphDevice;
 	private GraphicsConfiguration gc;
 	private Thread renderThread = null;
@@ -105,17 +106,12 @@ public abstract class GraphicsApplication implements Runnable {
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
 
-	public GraphicsApplication() {
+	protected GraphicsApplication() {
 	}
 
 	public void start(Settings settings) {
 		this.settings = settings;
-		// Acquiring the current graphics device and graphics configuration
-		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
-		this.graphDevice = graphEnv.getDefaultScreenDevice();
-		this.gc = graphDevice.getDefaultConfiguration();
-		this.graphFrame = new GraphicsFrame(this);
-		this.graphFrame.init();
+		initGraphics();
 		initBufferedImage();
 		initFpsData();
 		initFont();
@@ -123,9 +119,22 @@ public abstract class GraphicsApplication implements Runnable {
 		appInit();
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
-//		this.graphicsFrame.setVisible(true);
-//		// start the app
 		startThread();
+	}
+
+	private void initGraphics() {
+		// Acquiring the current graphics device and graphics configuration
+		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		this.graphDevice = graphEnv.getDefaultScreenDevice();
+		this.gc = graphDevice.getDefaultConfiguration();
+		this.graphFrame = new GraphicsFrame(this);
+	}
+
+	private void startThread() {
+		if (renderThread == null || !isRunning) {
+			renderThread = new Thread(this);
+			renderThread.start();
+		}
 	}
 
 	private void initFpsData() {
@@ -156,11 +165,8 @@ public abstract class GraphicsApplication implements Runnable {
 		return settings;
 	}
 
-	private void startThread() {
-		if (renderThread == null || !isRunning) {
-			renderThread = new Thread(this);
-			renderThread.start();
-		}
+	void setGraphFrame(GraphicsFrame graphFrame) {
+		this.graphFrame = graphFrame;
 	}
 
 	private Thread buildShutdownThread() {

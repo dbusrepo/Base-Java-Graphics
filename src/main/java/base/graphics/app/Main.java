@@ -1,6 +1,7 @@
 package base.graphics.app;
 
 public class Main extends GraphicsApplication {
+
 	public Main() {
 		Settings settings = new Settings();
 		settings.title = "Java graphics app";
