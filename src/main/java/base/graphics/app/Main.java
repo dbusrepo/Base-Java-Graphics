@@ -5,6 +5,7 @@ public class Main extends GraphicsAppSoftRendering {
 	public Main() {
 		Settings settings = new Settings();
 		settings.title = "Java graphics app";
+		settings.showMenu = true;
 		start(settings);
 	}
 

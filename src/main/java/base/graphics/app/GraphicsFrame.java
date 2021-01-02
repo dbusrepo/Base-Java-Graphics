@@ -44,7 +44,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 //		setDefaultLookAndFeelDecorated(true);
 		setTitle(settings.title);
 		setExtendedState(JFrame.NORMAL);
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // JFrame.DISPOSE_ON_CLOSE
 		if (settings.showMenu) {
 			setUndecorated(true); // no title bar, borders if there is a menu
 			JMenuBar menuBar = graphApp.appBuildMenu();

@@ -21,6 +21,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import base.graphics.app.input.InputAction;
@@ -546,10 +547,17 @@ public abstract class GraphicsApplication implements Runnable {
 	}
 
 	protected JMenuBar appBuildMenu() {
-		var menuBar = new JMenuBar();
-		var fileMenu = new JMenu("File");
+		JMenuBar menuBar = new JMenuBar();
+		JMenu fileMenu = new JMenu("File");
 		fileMenu.setMnemonic(KeyEvent.VK_F);
-		var exitMenuItem = new JMenuItem("Exit");
+		JMenuItem exitMenuItem = new JMenuItem("Exit");
+		exitMenuItem.addActionListener(e -> {
+			int result = JOptionPane.showConfirmDialog(GraphicsApplication.this.graphFrame,
+					"Are you sure you want to exit the application?", "Exit Application", JOptionPane.YES_NO_OPTION);
+			if (result == JOptionPane.YES_OPTION) {
+				GraphicsApplication.this.isRunning = false;
+			}
+		});
 //		exitMenuItem.setToolTipText("Exit Application");
 		fileMenu.add(exitMenuItem);
 		menuBar.add(fileMenu);
