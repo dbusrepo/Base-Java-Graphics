@@ -8,11 +8,15 @@ import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.ImageCapabilities;
+import java.awt.Point;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.text.DecimalFormat;
 
 import javax.swing.JFrame;
+import javax.swing.JMenuBar;
 
 @SuppressWarnings("serial")
 class GraphicsFrame extends JFrame implements WindowListener {
@@ -29,36 +33,39 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		super(graphApp.getGraphicsConfiguration());
 		graphApp.setGraphFrame(this);
 		this.graphApp = graphApp;
-	}
-
-	protected void init() {
 		this.settings = graphApp.getSettings();
 		this.graphDevice = graphApp.getGraphDevice();
 		if (settings.showCapabilities) {
 			reportCapabilities();
 		}
-//		setDefaultLookAndFeelDecorated(true);
-		setTitle(settings.title); // TODO
-		addWindowListener(this);
+	}
 
-		setUndecorated(settings.fullScreen); // no menu bar, borders, etc. or
-												// Swing components? // TODO
-		setIgnoreRepaint(true); // turn off all paint events doing active
-								// rendering
+	protected void init() {
+//		setDefaultLookAndFeelDecorated(true);
+		setTitle(settings.title);
 		setExtendedState(JFrame.NORMAL);
-		initCanvas();
-		setResizable(false);
-		setLocationRelativeTo(null); // called after setVisible(true); to center
-										// the window (first screen only?)
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		if (settings.showMenu) {
+			setUndecorated(true); // no title bar, borders if there is a menu
+			JMenuBar menuBar = graphApp.appBuildMenu();
+			FrameDragListener frameDragListener = new FrameDragListener(this); // to drag using the menu bar
+			menuBar.addMouseListener(frameDragListener);
+			menuBar.addMouseMotionListener(frameDragListener);
+			setJMenuBar(menuBar);
+		} else {
+			setUndecorated(settings.fullScreen); // no title bar, borders etc if fullscreen
+			setIgnoreRepaint(true); // only when there is no menu to avoid menu vis problems
+		}
+		initCanvas();
 		if (settings.fullScreen) {
 			initFullScreen();
 		}
+		setResizable(false);
 		setAlwaysOnTop(settings.fullScreen);
-		initBufferStrategy();
-		setVisible(true); // done in graphics app
 		setFocusable(true);
-		graphApp.appInitMenu();
+		setVisible(true);
+		setLocationRelativeTo(null);
+		addWindowListener(this);
 		requestFocus();
 	}
 
@@ -75,6 +82,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		canvas.setIgnoreRepaint(true);
 		add(canvas);
 		pack();
+		initBufferStrategy();
 	}
 
 	private void initBufferStrategy() {
@@ -120,7 +128,9 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		setMaximizedBounds(env.getMaximumWindowBounds());
 //		setPreferredSize(Toolkit.getDefaultToolkit().getScreenSize());
 		enableInputMethods(false);
-		setDisplayMode(); // switch on full-screen exclusive mode
+		if (!settings.showMenu) {
+			setDisplayMode(); // switch on full-screen exclusive mode
+		}
 	}
 
 	void toggleFullscreen() {
@@ -341,5 +351,32 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		return mode1.getRefreshRate() == DisplayMode.REFRESH_RATE_UNKNOWN
 				|| mode2.getRefreshRate() == DisplayMode.REFRESH_RATE_UNKNOWN
 				|| mode1.getRefreshRate() == mode2.getRefreshRate();
+	}
+
+	// https://stackoverflow.com/questions/16046824/making-a-java-swing-frame-movable-and-setundecorated
+	public static class FrameDragListener extends MouseAdapter {
+
+		private final JFrame frame;
+		private Point mouseDownCompCoords = null;
+
+		public FrameDragListener(JFrame frame) {
+			this.frame = frame;
+		}
+
+		@Override
+		public void mouseReleased(MouseEvent e) {
+			mouseDownCompCoords = null;
+		}
+
+		@Override
+		public void mousePressed(MouseEvent e) {
+			mouseDownCompCoords = e.getPoint();
+		}
+
+		@Override
+		public void mouseDragged(MouseEvent e) {
+			Point currCoords = e.getLocationOnScreen();
+			frame.setLocation(currCoords.x - mouseDownCompCoords.x, currCoords.y - mouseDownCompCoords.y);
+		}
 	}
 }

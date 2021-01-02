@@ -545,16 +545,15 @@ public abstract class GraphicsApplication implements Runnable {
 	protected void appPrintFinalStats() {
 	}
 
-	protected void appInitMenu() {
+	protected JMenuBar appBuildMenu() {
 		var menuBar = new JMenuBar();
 		var fileMenu = new JMenu("File");
 		fileMenu.setMnemonic(KeyEvent.VK_F);
 		var exitMenuItem = new JMenuItem("Exit");
-		exitMenuItem.setToolTipText("Exit Application");
+//		exitMenuItem.setToolTipText("Exit Application");
 		fileMenu.add(exitMenuItem);
 		menuBar.add(fileMenu);
-		this.graphFrame.setJMenuBar(menuBar);
-		this.graphFrame.pack();
+		return menuBar;
 	}
 
 }
