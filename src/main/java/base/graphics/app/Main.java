@@ -1,6 +1,6 @@
 package base.graphics.app;
 
-public class Main extends GraphicsAppSoftRendering {
+public class Main extends GraphAppSoftRendering {
 
 	public Main() throws Exception {
 		Settings settings = new Settings();
@@ -11,5 +11,23 @@ public class Main extends GraphicsAppSoftRendering {
 
 	public static void main(String[] args) throws Exception {
 		new Main();
+	}
+
+	@Override
+	public void updateApp(long elapsedTime) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void finishOffApp() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void printFinalStatsApp() {
+		// TODO Auto-generated method stub
+
 	}
 }

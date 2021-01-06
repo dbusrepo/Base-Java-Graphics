@@ -37,7 +37,7 @@ import base.graphics.app.log.Log;
 // see reader comments about the book chapters on the book website
 // vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen
 
-public abstract class GraphicsApplication implements Runnable {
+public abstract class GraphApp implements Runnable, IGraphApp {
 
 	private static final long NANO_IN_MILLI = 1000000L;
 	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
@@ -68,7 +68,7 @@ public abstract class GraphicsApplication implements Runnable {
 	/******************************************************************************************************************/
 
 	private Settings settings;
-	private GraphicsFrame graphFrame;
+	private GraphFrame graphFrame;
 
 	private GraphicsDevice graphDevice;
 	private GraphicsConfiguration gc;
@@ -98,7 +98,7 @@ public abstract class GraphicsApplication implements Runnable {
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
 
-	protected GraphicsApplication() {
+	protected GraphApp() {
 	}
 
 	public void start(Settings settings) throws Exception {
@@ -116,7 +116,7 @@ public abstract class GraphicsApplication implements Runnable {
 			initFont();
 			initInputManager();
 			initLog();
-			appInit();
+			initApp();
 		} catch (Exception ex) {
 			System.err.println("Error while initializing the application. Exiting...");
 			graphFrame.restoreScreen();
@@ -134,8 +134,8 @@ public abstract class GraphicsApplication implements Runnable {
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
 		this.gc = graphDevice.getDefaultConfiguration();
 		try {
-			GraphicsFrame[] res = new GraphicsFrame[1];
-			SwingUtilities.invokeAndWait(() -> res[0] = new GraphicsFrame(this));
+			GraphFrame[] res = new GraphFrame[1];
+			SwingUtilities.invokeAndWait(() -> res[0] = new GraphFrame(this));
 			this.graphFrame = res[0];
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -266,12 +266,8 @@ public abstract class GraphicsApplication implements Runnable {
 		}
 		checkSystemInput(); // check input that can happen whether paused or not
 		if (canUpdateState()) {
-			updateState(elapsedTime);
+			updateApp(elapsedTime);
 		}
-	}
-
-	private void updateState(long elapsedTime) {
-		appUpdate(elapsedTime);
 	}
 
 	// https://stackoverflow.com/questions/19823633/multiple-keys-in-keyevent-listener
@@ -280,7 +276,7 @@ public abstract class GraphicsApplication implements Runnable {
 			isPaused = !isPaused;
 		}
 		if (exitAction.isPressed()) {
-			stopApp();
+			stop();
 		}
 		if (toggleFullscreenAction.isPressed()) {
 			toggleFullscreenAction.release(); // to avoid a subtle bug of
@@ -293,49 +289,49 @@ public abstract class GraphicsApplication implements Runnable {
 		// ...
 	}
 
+	private boolean canUpdateState() {
+		return !isPaused && !appOver;
+	}
+
+	// see https://docs.oracle.com/javase/7/docs/api/java/awt/image/BufferStrategy.html
 	private void render() {
 		try {
-			drawFrame();
+			Canvas canvas = graphFrame.getCanvas();
+			BufferStrategy strategy = canvas.getBufferStrategy();
+			do {
+				// The following loop ensures that the contents of the drawing buffer
+				// are consistent in case the underlying surface was recreated
+				do {
+					Graphics2D g = null;
+					// Get a new graphics context every time through the loop
+					// to make sure the strategy is validated
+					try {
+						// Render to graphics
+						g = (Graphics2D) strategy.getDrawGraphics();
+						drawFrameApp(g);
+						showStats(g);
+					} finally {
+						// Dispose the graphics
+						if (g != null) {
+							g.dispose();
+						}
+					}
+					// Repeat the rendering if the drawing buffer contents were restored
+				} while (strategy.contentsRestored());
+				// Display the buffer
+				strategy.show();
+				// Sync the display on some systems. (on Linux, this fixes event queue problems)
+				Toolkit.getDefaultToolkit().sync();
+				// Repeat the rendering if the drawing buffer was lost
+			} while (strategy.contentsLost());
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			isRunning = false;
 		}
 	}
 
-	// see https://docs.oracle.com/javase/7/docs/api/java/awt/image/BufferStrategy.html
-	private void drawFrame() {
-		Canvas canvas = graphFrame.getCanvas();
-		BufferStrategy strategy = canvas.getBufferStrategy();
-		do {
-			// The following loop ensures that the contents of the drawing buffer
-			// are consistent in case the underlying surface was recreated
-			do {
-				Graphics2D g = null;
-				// Get a new graphics context every time through the loop
-				// to make sure the strategy is validated
-				try {
-					// Render to graphics
-					g = (Graphics2D) strategy.getDrawGraphics();
-					appDrawCanvas(g);
-					showStats(g);
-				} finally {
-					// Dispose the graphics
-					if (g != null) {
-						g.dispose();
-					}
-				}
-				// Repeat the rendering if the drawing buffer contents were restored
-			} while (strategy.contentsRestored());
-			// Display the buffer
-			strategy.show();
-			// Sync the display on some systems. (on Linux, this fixes event queue problems)
-			Toolkit.getDefaultToolkit().sync();
-			// Repeat the rendering if the drawing buffer was lost
-		} while (strategy.contentsLost());
-	}
-
 	protected void showStats(Graphics2D g) {
-//		appLogic.showStats(); 	// TODO APP_HOOK
+//		appLogic.showStats(); 	// TODO APP_HOOK ?
 		if (settings.showFps) {
 			g.setFont(font);
 			g.setColor(Color.YELLOW);
@@ -346,22 +342,18 @@ public abstract class GraphicsApplication implements Runnable {
 		}
 	}
 
-	private boolean canUpdateState() {
-		return !isPaused && !appOver;
-	}
-
 	/*
 	 * Tasks to do before terminating. Called at end of run() and via the shutdown hook in readyForTermination().
 	 * 
 	 * The call at the end of run() is not really necessary, but included for safety. The flag stops the code being
 	 * called twice.
 	 */
-	protected void finishOff() {
+	private void finishOff() {
 		// System.out.println("finishOff");
 		if (!finishedOff) {
 			finishedOff = true;
 			graphFrame.restoreScreen(); // make sure we restore the video mode before exiting
-			appFinishOff();
+			finishOffApp();
 			printFinalStats();
 			Log.finishOff();
 			System.exit(0);
@@ -438,45 +430,45 @@ public abstract class GraphicsApplication implements Runnable {
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
 		System.out.println("Time Spent: " + totalTimeSpent + " secs");
-		appPrintFinalStats();
+		printFinalStatsApp();
 		System.out.flush();
 //		System.err.flush();
 	}
 
 	// called when the JFrame is activated / deiconified
-	public void resumeApp() {
+	void resume() {
 		isPaused = false;
 	}
 
 	// called when the JFrame is deactivated / iconified
-	public void pauseApp() {
+	void pause() {
 		isPaused = true;
 	}
 
 	// called when the JFrame is closing
-	public void stopApp() {
+	void stop() {
 		isRunning = false;
 	}
 
 	/* ACC/MUT */
 
-	public Settings getSettings() {
+	Settings getSettings() {
 		return settings;
 	}
 
-	public void setGraphFrame(GraphicsFrame graphFrame) {
+	void setGraphFrame(GraphFrame graphFrame) {
 		this.graphFrame = graphFrame;
 	}
 
-	public Canvas getCanvas() {
+	Canvas getCanvas() {
 		return graphFrame.getCanvas();
 	}
 
-	public GraphicsDevice getGraphDevice() {
+	GraphicsDevice getGraphDevice() {
 		return graphDevice;
 	}
 
-	public GraphicsConfiguration getGraphicsConfiguration() {
+	GraphicsConfiguration getGraphicsConfiguration() {
 		return gc;
 	}
 
@@ -541,35 +533,24 @@ public abstract class GraphicsApplication implements Runnable {
 		}
 	}
 
-	/* APP LOGIC METHODS */
-
-	protected void appDrawCanvas(Graphics2D g) {
+	@Override
+	public void drawFrameApp(Graphics2D g) {
+		// draw bg only here
 		g.setBackground(Color.BLACK);
 		g.clearRect(0, 0, getCanvas().getWidth(), getCanvas().getHeight());
 	}
 
-	protected void appInit() {
-	}
-
-	protected void appUpdate(long elapsedTime) {
-	}
-
-	protected void appFinishOff() {
-	}
-
-	protected void appPrintFinalStats() {
-	}
-
-	protected JMenuBar appBuildMenu() {
+	@Override
+	public JMenuBar buildMenuApp() {
 		JMenuBar menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
 		fileMenu.setMnemonic(KeyEvent.VK_F);
 		JMenuItem exitMenuItem = new JMenuItem("Exit");
 		exitMenuItem.addActionListener(e -> {
-			int result = JOptionPane.showConfirmDialog(GraphicsApplication.this.graphFrame,
+			int result = JOptionPane.showConfirmDialog(GraphApp.this.graphFrame,
 					"Are you sure you want to exit the application?", "Exit Application", JOptionPane.YES_NO_OPTION);
 			if (result == JOptionPane.YES_OPTION) {
-				GraphicsApplication.this.isRunning = false;
+				GraphApp.this.isRunning = false;
 			}
 		});
 //		exitMenuItem.setToolTipText("Exit Application");

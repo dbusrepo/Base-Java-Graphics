@@ -5,12 +5,12 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
-public abstract class GraphicsAppSoftRendering extends GraphicsApplication {
+public abstract class GraphAppSoftRendering extends GraphApp {
 
 	protected BufferedImage frameImage;
 	protected int[] pixels; // buffer as int[]
 
-	protected GraphicsAppSoftRendering() {
+	protected GraphAppSoftRendering() {
 	}
 
 	protected void initFrameImage() {
@@ -24,12 +24,12 @@ public abstract class GraphicsAppSoftRendering extends GraphicsApplication {
 	}
 
 	@Override
-	protected void appInit() {
+	public void initApp() {
 		initFrameImage();
 	}
 
 	@Override
-	protected void appDrawCanvas(Graphics2D g) {
+	public void drawFrameApp(Graphics2D g) {
 		updateImage();
 		g.drawImage(frameImage, 0, 0, getCanvas().getWidth(), getCanvas().getHeight(), null);
 	}

@@ -19,9 +19,9 @@ import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 
 @SuppressWarnings("serial")
-class GraphicsFrame extends JFrame implements WindowListener {
+class GraphFrame extends JFrame implements WindowListener {
 
-	private GraphicsApplication graphApp;
+	private GraphApp graphApp;
 	private Settings settings;
 	private GraphicsDevice graphDevice;
 	// private BufferStrategy bufferStrategy;
@@ -29,7 +29,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 	private int accelMemory; // for reporting accl. memory usage
 	private Canvas canvas;
 
-	public GraphicsFrame(GraphicsApplication graphApp) {
+	public GraphFrame(GraphApp graphApp) {
 		super(graphApp.getGraphicsConfiguration());
 		graphApp.setGraphFrame(this);
 		this.graphApp = graphApp;
@@ -48,7 +48,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // JFrame.DISPOSE_ON_CLOSE
 		if (settings.showMenu) {
 			setUndecorated(true); // no title bar, borders if there is a menu
-			JMenuBar menuBar = graphApp.appBuildMenu();
+			JMenuBar menuBar = graphApp.buildMenuApp();
 			FrameDragListener frameDragListener = new FrameDragListener(this); // to drag using the menu bar
 			menuBar.addMouseListener(frameDragListener);
 			menuBar.addMouseMotionListener(frameDragListener);
@@ -271,27 +271,27 @@ class GraphicsFrame extends JFrame implements WindowListener {
 
 	@Override
 	public void windowClosing(java.awt.event.WindowEvent evt) {
-		graphApp.stopApp();
+		graphApp.stop();
 	}
 
 	@Override
 	public void windowIconified(java.awt.event.WindowEvent evt) {
-		graphApp.pauseApp();
+		graphApp.pause();
 	}
 
 	@Override
 	public void windowDeiconified(java.awt.event.WindowEvent evt) {
-		graphApp.resumeApp();
+		graphApp.resume();
 	}
 
 	@Override
 	public void windowActivated(java.awt.event.WindowEvent evt) {
-		graphApp.resumeApp();
+		graphApp.resume();
 	}
 
 	@Override
 	public void windowDeactivated(java.awt.event.WindowEvent evt) {
-		graphApp.pauseApp();
+		graphApp.pause();
 	}
 
 	@Override
