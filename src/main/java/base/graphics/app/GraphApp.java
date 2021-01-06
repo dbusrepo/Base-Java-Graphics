@@ -460,7 +460,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		this.graphFrame = graphFrame;
 	}
 
-	Canvas getCanvas() {
+	protected Canvas getCanvas() {
 		return graphFrame.getCanvas();
 	}
 
