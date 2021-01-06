@@ -23,6 +23,7 @@ public class LogWindow extends JFrame {
 		textPane = new JTextPane();
 		textPane.setBorder(new TitledBorder("Messages"));
 		textPane.setEditable(false);
+		textPane.setBackground(new Color(211, 216, 224));
 		add(new JScrollPane(textPane));
 		setSize(width, height);
 //		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // ?
