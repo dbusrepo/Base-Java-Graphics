@@ -16,6 +16,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
 import java.text.DecimalFormat;
+import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 import javax.swing.JMenu;
@@ -26,6 +27,7 @@ import javax.swing.SwingUtilities;
 
 import base.graphics.app.input.InputAction;
 import base.graphics.app.input.InputManager;
+import base.graphics.app.log.Log;
 
 // vedere:
 // https://stackoverflow.com/questions/35516191/what-is-the-correct-way-to-use-createbufferstrategy
@@ -36,15 +38,6 @@ import base.graphics.app.input.InputManager;
 // vedi setBufferStrategy in wormChase.java full screen e la gestione del fullscreen
 
 public abstract class GraphicsApplication implements Runnable {
-
-	private class ShutDownThread extends Thread {
-		@Override
-		public void run() {
-//			super.run();
-			isRunning = false;
-			finishOff();
-		}
-	}
 
 	private static final long NANO_IN_MILLI = 1000000L;
 	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
@@ -108,16 +101,31 @@ public abstract class GraphicsApplication implements Runnable {
 	protected GraphicsApplication() {
 	}
 
-	public void start(Settings settings) {
+	public void start(Settings settings) throws Exception {
 		this.settings = settings;
-		initGraphics();
-		initFpsData();
-		initFont();
-		initInputManager();
-		appInit();
+		init();
 		// for shutdown tasks, a shutdown may not only come from the program
 		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
 		startThread();
+	}
+
+	private void init() throws Exception {
+		initGraphics();
+		try {
+			initFpsStats();
+			initFont();
+			initInputManager();
+			initLog();
+			appInit();
+		} catch (Exception ex) {
+			System.err.println("Error while initializing the application. Exiting...");
+			graphFrame.restoreScreen();
+			throw ex;
+		}
+	}
+
+	private void initLog() throws Exception {
+		Log.init(settings, Logger.getLogger(this.getClass().getName()));
 	}
 
 	private void initGraphics() {
@@ -125,15 +133,14 @@ public abstract class GraphicsApplication implements Runnable {
 		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
 		this.gc = graphDevice.getDefaultConfiguration();
-		this.graphFrame = new GraphicsFrame(this);
 		try {
-			SwingUtilities.invokeAndWait(() -> {
-				this.graphFrame.init();
-			});
-		} catch (Exception e) {
-			System.out.println("Error while initializing the graphics frame");
-			e.printStackTrace();
-			System.exit(0);
+			GraphicsFrame[] res = new GraphicsFrame[1];
+			SwingUtilities.invokeAndWait(() -> res[0] = new GraphicsFrame(this));
+			this.graphFrame = res[0];
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			System.err.println("Error while initializing the graphics frame.");
+			System.exit(1);
 		}
 	}
 
@@ -144,7 +151,7 @@ public abstract class GraphicsApplication implements Runnable {
 		}
 	}
 
-	private void initFpsData() {
+	private void initFpsStats() {
 		this.fpsStore = new double[NUM_AVG_FPS];
 		this.upsStore = new double[NUM_AVG_FPS];
 		for (int i = 0; i < NUM_AVG_FPS; i++) {
@@ -160,7 +167,14 @@ public abstract class GraphicsApplication implements Runnable {
 	}
 
 	private Thread buildShutdownThread() {
-		return new ShutDownThread();
+		return new Thread() {
+			@Override
+			public void run() {
+//				super.run();
+				isRunning = false;
+				finishOff();
+			}
+		};
 	}
 
 	// TODO APP HOOK ?
@@ -346,10 +360,10 @@ public abstract class GraphicsApplication implements Runnable {
 		// System.out.println("finishOff");
 		if (!finishedOff) {
 			finishedOff = true;
-			graphFrame.restoreScreen(); // make sure we restore the video
-										// mode before exiting
+			graphFrame.restoreScreen(); // make sure we restore the video mode before exiting
 			appFinishOff();
 			printFinalStats();
+			Log.finishOff();
 			System.exit(0);
 		}
 	}

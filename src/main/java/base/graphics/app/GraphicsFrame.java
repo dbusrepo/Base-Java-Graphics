@@ -38,9 +38,10 @@ class GraphicsFrame extends JFrame implements WindowListener {
 		if (settings.showCapabilities) {
 			reportCapabilities();
 		}
+		init();
 	}
 
-	protected void init() {
+	private void init() {
 //		setDefaultLookAndFeelDecorated(true);
 		setTitle(settings.title);
 		setExtendedState(JFrame.NORMAL);
@@ -77,7 +78,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 			}
 		}
 		canvas = new Canvas();
-		canvas.setSize(settings.width, settings.height);
+		canvas.setSize(settings.winWidth, settings.winHeight);
 		canvas.setBackground(Color.BLACK);
 		canvas.setIgnoreRepaint(true);
 		add(canvas);
@@ -102,7 +103,7 @@ class GraphicsFrame extends JFrame implements WindowListener {
 //				}
 //			});
 		} catch (Exception ex) {
-			System.out.println("Error while creating buffer strategy");
+			System.err.println("Error while creating buffer strategy");
 			System.exit(0);
 		}
 		try { // sleep to give time for the buffer strategy to be carried out
@@ -158,12 +159,12 @@ class GraphicsFrame extends JFrame implements WindowListener {
 			System.out.println("Display mode changing not supported");
 			return false;
 		}
-		DisplayMode dm = new DisplayMode(settings.width, settings.height, settings.bitDepth,
+		DisplayMode dm = new DisplayMode(settings.winWidth, settings.winHeight, settings.bitDepth,
 				DisplayMode.REFRESH_RATE_UNKNOWN); // any
 													// refresh
 													// rate
 		if (!isDisplayModeAvailable(dm)) {
-			System.out.println("Display mode (" + settings.width + "," + settings.height + "," + settings.bitDepth
+			System.out.println("Display mode (" + settings.winWidth + "," + settings.winHeight + "," + settings.bitDepth
 					+ ") not available. Finding the first compatible:");
 			DisplayMode compatibleMd = findFirstCompatibleMode(new DisplayMode[] { dm });
 			if (compatibleMd == null) {

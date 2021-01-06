@@ -57,6 +57,7 @@ atlassian-ide-plugin.xml
 ######################
 *.log
 log.txt
+log/
 
 # gradle stuff
 .gradle/

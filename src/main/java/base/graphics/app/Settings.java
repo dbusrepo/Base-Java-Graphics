@@ -1,5 +1,7 @@
 package base.graphics.app;
 
+import java.util.logging.Level;
+
 public class Settings {
 
 	static final String TITLE = "Java Graphics";
@@ -10,8 +12,8 @@ public class Settings {
 	static final int TARGET_FPS = 120;
 
 	public String title = TITLE;
-	public int width = WIDTH;
-	public int height = HEIGHT;
+	public int winWidth = WIDTH;
+	public int winHeight = HEIGHT;
 	public int bitDepth = BIT_DEPTH;
 	public boolean fullScreen = false;
 	public int numBuffers = NUM_BUFFERS;
@@ -19,6 +21,12 @@ public class Settings {
 	public boolean showFps = true;
 	public boolean showCapabilities = true;
 	public boolean showMenu = true;
+
+	public boolean useLogWindow = true;
+	public int logWinWidth = 500;
+	public int logWinHeight = 500;
+	public boolean useLogFile = true;
+	public Level logLevel = Level.ALL;
 
 	public void toggleFullscreen() {
 		fullScreen = !fullScreen;
