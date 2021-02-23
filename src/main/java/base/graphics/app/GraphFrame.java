@@ -46,19 +46,20 @@ class GraphFrame extends JFrame implements WindowListener {
 		setTitle(settings.title);
 		setExtendedState(JFrame.NORMAL);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // JFrame.DISPOSE_ON_CLOSE
+		setIgnoreRepaint(true);
+		setUndecorated(!settings.showTitleBar);
 		if (settings.showMenu) {
-			setUndecorated(true); // no title bar, borders if there is a menu
+			setIgnoreRepaint(false); // to avoid menu vis problems
 			JMenuBar menuBar = graphApp.buildMenuApp();
-			FrameDragListener frameDragListener = new FrameDragListener(this); // to drag using the menu bar
+			// to drag using the menu bar (only):
+			FrameDragListener frameDragListener = new FrameDragListener(this);
 			menuBar.addMouseListener(frameDragListener);
 			menuBar.addMouseMotionListener(frameDragListener);
 			setJMenuBar(menuBar);
-		} else {
-			setUndecorated(settings.fullScreen); // no title bar, borders etc if fullscreen
-			setIgnoreRepaint(true); // only when there is no menu to avoid menu vis problems
 		}
 		initCanvas();
 		if (settings.fullScreen) {
+			setUndecorated(true);
 			initFullScreen();
 		}
 		setResizable(false);
@@ -89,11 +90,13 @@ class GraphFrame extends JFrame implements WindowListener {
 	private void initBufferStrategy() {
 		// avoid potential deadlock in 1.4.1_02
 		/*
-		 * Switch on page flipping: NUM_BUFFERS == 2 so there will be a 'primary surface' and one 'back buffer'.
+		 * Switch on page flipping: NUM_BUFFERS == 2 so there will be a 'primary
+		 * surface' and one 'back buffer'.
 		 * 
-		 * The use of invokeAndWait() is to avoid a possible deadlock with the event dispatcher thread. Should be fixed
-		 * in J2SE 1.5 ` createBufferStrategy) is an asynchronous operation, so sleep a bit so that the
-		 * getBufferStrategy() call will get the correct details.
+		 * The use of invokeAndWait() is to avoid a possible deadlock with the
+		 * event dispatcher thread. Should be fixed in J2SE 1.5 `
+		 * createBufferStrategy) is an asynchronous operation, so sleep a bit so
+		 * that the getBufferStrategy() call will get the correct details.
 		 */
 		try {
 			canvas.createBufferStrategy(settings.numBuffers);
@@ -125,7 +128,8 @@ class GraphFrame extends JFrame implements WindowListener {
 	private void enableFullScreen() {
 		graphDevice.setFullScreenWindow(this);
 		setExtendedState(JFrame.MAXIMIZED_BOTH); // TODO
-		GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsEnvironment env = GraphicsEnvironment
+				.getLocalGraphicsEnvironment();
 		setMaximizedBounds(env.getMaximumWindowBounds());
 //		setPreferredSize(Toolkit.getDefaultToolkit().getScreenSize());
 		enableInputMethods(false);
@@ -144,7 +148,8 @@ class GraphFrame extends JFrame implements WindowListener {
 	}
 
 	/**
-	 * Remove the window from the screen, if we are in full screen mode then we need to reset the video mode.
+	 * Remove the window from the screen, if we are in full screen mode then we
+	 * need to reset the video mode.
 	 */
 	void restoreScreen() {
 		setVisible(false); // you can't see me!
@@ -159,14 +164,16 @@ class GraphFrame extends JFrame implements WindowListener {
 			System.out.println("Display mode changing not supported");
 			return false;
 		}
-		DisplayMode dm = new DisplayMode(settings.winWidth, settings.winHeight, settings.bitDepth,
-				DisplayMode.REFRESH_RATE_UNKNOWN); // any
-													// refresh
-													// rate
+		DisplayMode dm = new DisplayMode(settings.winWidth, settings.winHeight,
+				settings.bitDepth, DisplayMode.REFRESH_RATE_UNKNOWN); // any
+																		// refresh
+																		// rate
 		if (!isDisplayModeAvailable(dm)) {
-			System.out.println("Display mode (" + settings.winWidth + "," + settings.winHeight + "," + settings.bitDepth
+			System.out.println("Display mode (" + settings.winWidth + ","
+					+ settings.winHeight + "," + settings.bitDepth
 					+ ") not available. Finding the first compatible:");
-			DisplayMode compatibleMd = findFirstCompatibleMode(new DisplayMode[] { dm });
+			DisplayMode compatibleMd = findFirstCompatibleMode(
+					new DisplayMode[] { dm });
 			if (compatibleMd == null) {
 				System.out.println("Compatible display mode not found");
 				return false;
@@ -174,11 +181,11 @@ class GraphFrame extends JFrame implements WindowListener {
 		}
 		try {
 			graphDevice.setDisplayMode(dm);
-			System.out.println(
-					"Display mode set to: (" + dm.getWidth() + "," + dm.getHeight() + "," + dm.getBitDepth() + ")");
+			System.out.println("Display mode set to: (" + dm.getWidth() + ","
+					+ dm.getHeight() + "," + dm.getBitDepth() + ")");
 		} catch (IllegalArgumentException e) {
-			System.out.println("Error setting Display mode (" + dm.getWidth() + "," + dm.getHeight() + ","
-					+ dm.getBitDepth() + ")");
+			System.out.println("Error setting Display mode (" + dm.getWidth()
+					+ "," + dm.getHeight() + "," + dm.getBitDepth() + ")");
 			return false;
 		}
 		try { // sleep to give time for the display to be changed
@@ -189,8 +196,9 @@ class GraphFrame extends JFrame implements WindowListener {
 	}
 
 	/*
-	 * Check that a displayMode with this width, height, bit depth is available. We don't care about the refresh rate,
-	 * which is probably REFRESH_RATE_UNKNOWN anyway.
+	 * Check that a displayMode with this width, height, bit depth is available.
+	 * We don't care about the refresh rate, which is probably
+	 * REFRESH_RATE_UNKNOWN anyway.
 	 */
 	private boolean isDisplayModeAvailable(DisplayMode dm) {
 		DisplayMode[] modes = graphDevice.getDisplayModes();
@@ -206,11 +214,13 @@ class GraphFrame extends JFrame implements WindowListener {
 	@SuppressWarnings("unused")
 	private void showCurrentMode() {
 		DisplayMode dm = graphDevice.getDisplayMode();
-		System.out.println("Current Display Mode: (" + displayModePrintStr(dm) + ")  ");
+		System.out.println(
+				"Current Display Mode: (" + displayModePrintStr(dm) + ")  ");
 	}
 
 	/**
-	 * Returns the first compatible mode in a list of modes. Returns null if no modes are compatible.
+	 * Returns the first compatible mode in a list of modes. Returns null if no
+	 * modes are compatible.
 	 */
 	private DisplayMode findFirstCompatibleMode(DisplayMode[] modes) {
 		DisplayMode[] goodModes = graphDevice.getDisplayModes();
@@ -228,28 +238,40 @@ class GraphFrame extends JFrame implements WindowListener {
 		System.out.println();
 		System.out.println("SYS CAPABILITIES:");
 		accelMemory = graphDevice.getAvailableAcceleratedMemory();
-		System.out.println("Initial Acc. Mem.: " + df.format(((double) accelMemory) / (1024 * 1024)) + " MB");
+		System.out.println("Initial Acc. Mem.: "
+				+ df.format(((double) accelMemory) / (1024 * 1024)) + " MB");
 		GraphicsConfiguration graphConfig = graphApp.getGraphicsConfiguration();
 		System.out.println("Color model: " + graphConfig.getColorModel());
 		System.out.println("Graphics device: " + graphConfig.getDevice());
 		ImageCapabilities imageCaps = graphConfig.getImageCapabilities();
-		System.out.println("Image Caps. isAccelerated: " + imageCaps.isAccelerated());
-		System.out.println("Image Caps. isTrueVolatile: " + imageCaps.isTrueVolatile());
+		System.out.println(
+				"Image Caps. isAccelerated: " + imageCaps.isAccelerated());
+		System.out.println(
+				"Image Caps. isTrueVolatile: " + imageCaps.isTrueVolatile());
 		// Buffer Capabilities
 		BufferCapabilities bufferCaps = graphConfig.getBufferCapabilities();
-		System.out.println("Buffer Caps. isPageFlipping: " + bufferCaps.isPageFlipping());
-		System.out.println("Buffer Caps. Flip Contents: " + getFlipText(bufferCaps.getFlipContents()));
-		System.out.println("Buffer Caps. Full-screen Required: " + bufferCaps.isFullScreenRequired());
-		System.out.println("Buffer Caps. MultiBuffers: " + bufferCaps.isMultiBufferAvailable());
-		System.out.println("Buffer Caps. MultiBuffers: " + bufferCaps.isMultiBufferAvailable());
+		System.out.println(
+				"Buffer Caps. isPageFlipping: " + bufferCaps.isPageFlipping());
+		System.out.println("Buffer Caps. Flip Contents: "
+				+ getFlipText(bufferCaps.getFlipContents()));
+		System.out.println("Buffer Caps. Full-screen Required: "
+				+ bufferCaps.isFullScreenRequired());
+		System.out.println("Buffer Caps. MultiBuffers: "
+				+ bufferCaps.isMultiBufferAvailable());
+		System.out.println("Buffer Caps. MultiBuffers: "
+				+ bufferCaps.isMultiBufferAvailable());
 		// Front buffer caps
 		imageCaps = bufferCaps.getFrontBufferCapabilities();
-		System.out.println("Front buffer isAccelerated: " + imageCaps.isAccelerated());
-		System.out.println("Front buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
+		System.out.println(
+				"Front buffer isAccelerated: " + imageCaps.isAccelerated());
+		System.out.println(
+				"Front buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
 		// Back buffer caps
 		imageCaps = bufferCaps.getBackBufferCapabilities();
-		System.out.println("Back buffer isAccelerated: " + imageCaps.isAccelerated());
-		System.out.println("Back buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
+		System.out.println(
+				"Back buffer isAccelerated: " + imageCaps.isAccelerated());
+		System.out.println(
+				"Back buffer isTrueVolatile: " + imageCaps.isTrueVolatile());
 		System.out.println();
 		System.out.flush();
 	}
@@ -312,8 +334,10 @@ class GraphFrame extends JFrame implements WindowListener {
 		int mem = graphDevice.getAvailableAcceleratedMemory(); // in bytes
 		int memChange = mem - accelMemory;
 		if (memChange != 0) {
-			System.out.println("Acc. Mem: " + df.format(((double) accelMemory) / (1024 * 1024)) + " MB; Change: "
-					+ df.format(((double) memChange) / 1024) + " K");
+			System.out.println("Acc. Mem: "
+					+ df.format(((double) accelMemory) / (1024 * 1024))
+					+ " MB; Change: " + df.format(((double) memChange) / 1024)
+					+ " K");
 		}
 		accelMemory = mem;
 	} // end of reportAcceleMemory()
@@ -333,19 +357,25 @@ class GraphFrame extends JFrame implements WindowListener {
 	}
 
 	public static String displayModePrintStr(DisplayMode mode) {
-		return mode.getWidth() + "x" + mode.getHeight() + "x" + mode.getBitDepth() + "@" + mode.getRefreshRate();
+		return mode.getWidth() + "x" + mode.getHeight() + "x"
+				+ mode.getBitDepth() + "@" + mode.getRefreshRate();
 	}
 
 	/**
-	 * Determines if two display modes "match". Two display modes match if they have the same resolution, bit depth, and
-	 * refresh rate. The bit depth is ignored if one of the modes has a bit depth of DisplayMode.BIT_DEPTH_MULTI.
-	 * Likewise, the refresh rate is ignored if one of the modes has a refresh rate of DisplayMode.REFRESH_RATE_UNKNOWN.
+	 * Determines if two display modes "match". Two display modes match if they
+	 * have the same resolution, bit depth, and refresh rate. The bit depth is
+	 * ignored if one of the modes has a bit depth of
+	 * DisplayMode.BIT_DEPTH_MULTI. Likewise, the refresh rate is ignored if one
+	 * of the modes has a refresh rate of DisplayMode.REFRESH_RATE_UNKNOWN.
 	 */
-	private static boolean displayModesMatch(DisplayMode mode1, DisplayMode mode2) {
-		if (mode1.getWidth() != mode2.getWidth() || mode1.getHeight() != mode2.getHeight()) {
+	private static boolean displayModesMatch(DisplayMode mode1,
+			DisplayMode mode2) {
+		if (mode1.getWidth() != mode2.getWidth()
+				|| mode1.getHeight() != mode2.getHeight()) {
 			return false;
 		}
-		if (mode1.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI && mode2.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI
+		if (mode1.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI
+				&& mode2.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI
 				&& mode1.getBitDepth() != mode2.getBitDepth()) {
 			return false;
 		}
@@ -377,7 +407,8 @@ class GraphFrame extends JFrame implements WindowListener {
 		@Override
 		public void mouseDragged(MouseEvent e) {
 			Point currCoords = e.getLocationOnScreen();
-			frame.setLocation(currCoords.x - mouseDownCompCoords.x, currCoords.y - mouseDownCompCoords.y);
+			frame.setLocation(currCoords.x - mouseDownCompCoords.x,
+					currCoords.y - mouseDownCompCoords.y);
 		}
 	}
 }

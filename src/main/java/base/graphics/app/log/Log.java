@@ -51,7 +51,7 @@ public class Log {
 		logger.setLevel(settings.logLevel);
 		logger.setUseParentHandlers(false);
 		LogDataFormatter formatter = new LogDataFormatter(Instant.now());
-		if (settings.useLogWindow) {
+		if (settings.showLogWindow) {
 			winLogHandler = new WinLogHandler(settings, formatter);
 			logger.addHandler(winLogHandler);
 		}

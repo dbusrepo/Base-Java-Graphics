@@ -20,9 +20,11 @@ public class Settings {
 	public int targetFps = TARGET_FPS;
 	public boolean showFps = true;
 	public boolean showCapabilities = true;
+	public boolean showTitleBar = true;
 	public boolean showMenu = true;
 
-	public boolean useLogWindow = true;
+	public boolean useLog = false;
+	public boolean showLogWindow = true;
 	public int logWinWidth = 500;
 	public int logWinHeight = 500;
 	public boolean useLogFile = true;
