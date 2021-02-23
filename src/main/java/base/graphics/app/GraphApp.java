@@ -118,19 +118,23 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			initLog();
 			initApp();
 		} catch (Exception ex) {
-			System.err.println("Error while initializing the application. Exiting...");
+			System.err.println(
+					"Error while initializing the application. Exiting...");
 			graphFrame.restoreScreen();
 			throw ex;
 		}
 	}
 
 	private void initLog() throws Exception {
-		Log.init(settings, Logger.getLogger(this.getClass().getName()));
+		if (settings.useLog) {
+			Log.init(settings, Logger.getLogger(this.getClass().getName()));
+		}
 	}
 
 	private void initGraphics() {
 		// Acquiring the current graphics device and graphics configuration
-		GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsEnvironment graphEnv = GraphicsEnvironment
+				.getLocalGraphicsEnvironment();
 		this.graphDevice = graphEnv.getDefaultScreenDevice();
 		this.gc = graphDevice.getDefaultConfiguration();
 		try {
@@ -182,9 +186,12 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		inputManager = new InputManager(graphFrame.getCanvas());
 //		inputManager.setRelativeMouseMode(true);
 //		inputManager.setCursor(InputManager.INVISIBLE_CURSOR); // TODO mouse non resta invisible quando si passa in fullscreen?
-		exitAction = new InputAction("Exit", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
-		pauseAction = new InputAction("Pause", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
-		toggleFullscreenAction = new InputAction("Toogle Fullscreen", InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		exitAction = new InputAction("Exit",
+				InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		pauseAction = new InputAction("Pause",
+				InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
+		toggleFullscreenAction = new InputAction("Toogle Fullscreen",
+				InputAction.DetectBehavior.INITIAL_PRESS_ONLY);
 		inputManager.mapToKey(KeyEvent.VK_ESCAPE, exitAction);
 		inputManager.mapToKey(KeyEvent.VK_P, pauseAction);
 		inputManager.mapToKey(KeyEvent.VK_F1, toggleFullscreenAction);
@@ -243,8 +250,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			beforeTime = System.nanoTime();
 
 			/*
-			 * If frame animation is taking too long, update the state without rendering it, to get the updates/sec
-			 * nearer to the required FPS.
+			 * If frame animation is taking too long, update the state without
+			 * rendering it, to get the updates/sec nearer to the required FPS.
 			 */
 			int skips = 0;
 			while ((excess > period) && (skips < MAX_FRAME_SKIPS)) {
@@ -293,13 +300,15 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		return !isPaused && !appOver;
 	}
 
-	// see https://docs.oracle.com/javase/7/docs/api/java/awt/image/BufferStrategy.html
+	// see
+	// https://docs.oracle.com/javase/7/docs/api/java/awt/image/BufferStrategy.html
 	private void render() {
 		try {
 			Canvas canvas = graphFrame.getCanvas();
 			BufferStrategy strategy = canvas.getBufferStrategy();
 			do {
-				// The following loop ensures that the contents of the drawing buffer
+				// The following loop ensures that the contents of the drawing
+				// buffer
 				// are consistent in case the underlying surface was recreated
 				do {
 					Graphics2D g = null;
@@ -316,11 +325,13 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 							g.dispose();
 						}
 					}
-					// Repeat the rendering if the drawing buffer contents were restored
+					// Repeat the rendering if the drawing buffer contents were
+					// restored
 				} while (strategy.contentsRestored());
 				// Display the buffer
 				strategy.show();
-				// Sync the display on some systems. (on Linux, this fixes event queue problems)
+				// Sync the display on some systems. (on Linux, this fixes event
+				// queue problems)
 				Toolkit.getDefaultToolkit().sync();
 				// Repeat the rendering if the drawing buffer was lost
 			} while (strategy.contentsLost());
@@ -335,24 +346,28 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		if (settings.showFps) {
 			g.setFont(font);
 			g.setColor(Color.YELLOW);
-			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 			// g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
-			String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", " + df.format(averageUPS);
+			String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", "
+					+ df.format(averageUPS);
 			g.drawString(debugInfo, 2, metrics.getHeight()); // was (10,55)
 		}
 	}
 
 	/*
-	 * Tasks to do before terminating. Called at end of run() and via the shutdown hook in readyForTermination().
+	 * Tasks to do before terminating. Called at end of run() and via the
+	 * shutdown hook in readyForTermination().
 	 * 
-	 * The call at the end of run() is not really necessary, but included for safety. The flag stops the code being
-	 * called twice.
+	 * The call at the end of run() is not really necessary, but included for
+	 * safety. The flag stops the code being called twice.
 	 */
 	private void finishOff() {
 		// System.out.println("finishOff");
 		if (!finishedOff) {
 			finishedOff = true;
-			graphFrame.restoreScreen(); // make sure we restore the video mode before exiting
+			graphFrame.restoreScreen(); // make sure we restore the video mode
+										// before exiting
 			finishOffApp();
 			printFinalStats();
 			Log.finishOff();
@@ -361,17 +376,18 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	}
 
 	/*
-	 * The statistics: - the summed periods for all the iterations in this interval (period is the amount of time a
-	 * single frame iteration should take), the actual elapsed time in this interval, the error between these two
-	 * numbers;
+	 * The statistics: - the summed periods for all the iterations in this
+	 * interval (period is the amount of time a single frame iteration should
+	 * take), the actual elapsed time in this interval, the error between these
+	 * two numbers;
 	 * 
 	 * - the total frame count, which is the total number of calls to run();
 	 * 
-	 * - the frames skipped in this interval, the total number of frames skipped. A frame skip is a state update without
-	 * a corresponding render;
+	 * - the frames skipped in this interval, the total number of frames
+	 * skipped. A frame skip is a state update without a corresponding render;
 	 * 
-	 * - the FPS (frames/sec) and UPS (updates/sec) for this interval, the average FPS & UPS over the last NUM_FPSs
-	 * intervals.
+	 * - the FPS (frames/sec) and UPS (updates/sec) for this interval, the
+	 * average FPS & UPS over the last NUM_FPSs intervals.
 	 * 
 	 * The data is collected every MAX_STATS_INTERVAL (1 sec).
 	 */
@@ -391,8 +407,10 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			double actualFPS = 0.0; // calculate the latest FPS and UPS
 			double actualUPS = 0.0;
 			if (totalElapsedTime > 0) {
-				actualFPS = (((double) frameCount / totalElapsedTime) * NANO_IN_SEC);
-				actualUPS = (((double) (frameCount + totalFramesSkipped) / totalElapsedTime) * NANO_IN_SEC);
+				actualFPS = (((double) frameCount / totalElapsedTime)
+						* NANO_IN_SEC);
+				actualUPS = (((double) (frameCount + totalFramesSkipped)
+						/ totalElapsedTime) * NANO_IN_SEC);
 			}
 			fpsStore[(int) statsCount % NUM_AVG_FPS] = actualFPS;
 			upsStore[(int) statsCount % NUM_AVG_FPS] = actualUPS;
@@ -426,7 +444,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	private void printFinalStats() {
 		System.out.println();
 		System.out.println("FINAL STATS:");
-		System.out.println("Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
+		System.out.println(
+				"Frame Count/Loss: " + frameCount + " / " + totalFramesSkipped);
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
 		System.out.println("Time Spent: " + totalTimeSpent + " secs");
@@ -477,8 +496,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	// vedi ImagesLoader.java Chap6 code KJGP
 	public BufferedImage loadImage(String fnm, int imgType)
 	/*
-	 * Load the image from <fnm>, returning it as a BufferedImage which is compatible with the graphics device being
-	 * used. Uses ImageIO.
+	 * Load the image from <fnm>, returning it as a BufferedImage which is
+	 * compatible with the graphics device being used. Uses ImageIO.
 	 */
 	{
 		try {
@@ -507,7 +526,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			// convert the image to ARGB
 			// https://stackoverflow.com/questions/27457517/how-to-change-the-image-type-of-a-bufferedimage-which-is-loaded-from-file
 			if (im.getType() != imgType) {
-				BufferedImage im2 = new BufferedImage(im.getWidth(), im.getHeight(), imgType);
+				BufferedImage im2 = new BufferedImage(im.getWidth(),
+						im.getHeight(), imgType);
 				Graphics2D g = im2.createGraphics();
 				g.drawImage(im, 0, 0, im.getWidth(), im.getHeight(), null);
 				g.dispose();
@@ -529,7 +549,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			}
 			System.out.println("File " + imageFile + " written.");
 		} catch (Exception ex) {
-			System.err.println("Write Image error for " + imageFile + ":\n" + ex);
+			System.err
+					.println("Write Image error for " + imageFile + ":\n" + ex);
 		}
 	}
 
@@ -548,7 +569,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		JMenuItem exitMenuItem = new JMenuItem("Exit");
 		exitMenuItem.addActionListener(e -> {
 			int result = JOptionPane.showConfirmDialog(GraphApp.this.graphFrame,
-					"Are you sure you want to exit the application?", "Exit Application", JOptionPane.YES_NO_OPTION);
+					"Are you sure you want to exit the application?",
+					"Exit Application", JOptionPane.YES_NO_OPTION);
 			if (result == JOptionPane.YES_OPTION) {
 				GraphApp.this.isRunning = false;
 			}
