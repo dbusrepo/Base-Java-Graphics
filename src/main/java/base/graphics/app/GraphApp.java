@@ -11,6 +11,7 @@ import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -41,8 +42,6 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 
 	private static final long NANO_IN_MILLI = 1000000L;
 	private static final long NANO_IN_SEC = 1000L * NANO_IN_MILLI;
-	// private static final int FONT_SIZE = 20;
-	private static final String FONT_NAME = "SansSerif";
 	// Number of frames with a delay of 0 ms before the animation thread yields
 	// to other running threads.
 	private static final int NUM_DELAYS_PER_YIELD = 16;
@@ -55,6 +54,12 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	private static final int MAX_FRAME_SKIPS = 5;
 	// number of FPS values stored to get an average
 	private static final int NUM_AVG_FPS = 10;
+
+	// used to print fps/ups stats
+	private static final int STATS_FONT_SIZE = 10;
+	private static final String STATS_FONT_NAME = "SansSerif";
+	private static final Color STATS_TEXT_COLOR = Color.YELLOW;
+	private static final Color STATS_BG_COLOR = Color.RED;
 
 	/******************************************************************************************************************/
 
@@ -92,8 +97,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	// private DecimalFormat timedf = new DecimalFormat("0.####"); // 4 dp
 	private double[] upsStore;
 	private double averageUPS = 0.0;
-	private Font font;
-	private FontMetrics metrics;
+	private Font statsFont;
 	private InputAction exitAction;
 	private InputAction pauseAction;
 	private InputAction toggleFullscreenAction;
@@ -166,8 +170,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	}
 
 	private void initFont() {
-		this.font = new Font(FONT_NAME, Font.BOLD, 10);
-		this.metrics = graphFrame.getCanvas().getFontMetrics(this.font);
+		this.statsFont = new Font(STATS_FONT_NAME, Font.BOLD, STATS_FONT_SIZE);
 	}
 
 	private Thread buildShutdownThread() {
@@ -344,14 +347,21 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	protected void showStats(Graphics2D g) {
 //		appLogic.showStats(); 	// TODO APP_HOOK ?
 		if (settings.showFps) {
-			g.setFont(font);
-			g.setColor(Color.YELLOW);
+			int x = 2;
+			FontMetrics fm = g.getFontMetrics(statsFont);
+			int y = fm.getHeight();
+			// g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
+			String stats_str = "FPS/UPS: " + df.format(averageFPS) + ", "
+					+ df.format(averageUPS);
+			Rectangle2D rect = fm.getStringBounds(stats_str, g);
+			g.setColor(STATS_BG_COLOR);
+			g.fillRect(x, y - fm.getAscent(), (int) rect.getWidth(),
+					(int) rect.getHeight());
+			g.setFont(statsFont);
+			g.setColor(STATS_TEXT_COLOR);
 			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
 					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			// g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
-			String debugInfo = "FPS/UPS: " + df.format(averageFPS) + ", "
-					+ df.format(averageUPS);
-			g.drawString(debugInfo, 2, metrics.getHeight()); // was (10,55)
+			g.drawString(stats_str, 2, fm.getHeight());
 		}
 	}
 
