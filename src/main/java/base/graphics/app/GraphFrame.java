@@ -35,7 +35,7 @@ class GraphFrame extends JFrame implements WindowListener {
 		this.graphApp = graphApp;
 		this.settings = graphApp.getSettings();
 		this.graphDevice = graphApp.getGraphDevice();
-		if (settings.showCapabilities) {
+		if (settings.showGraphCapabilities) {
 			reportCapabilities();
 		}
 		init();

@@ -19,7 +19,7 @@ public class Settings {
 	public int numBuffers = NUM_BUFFERS;
 	public int targetFps = TARGET_FPS;
 	public boolean showFps = true;
-	public boolean showCapabilities = true;
+	public boolean showGraphCapabilities = true;
 	public boolean showTitleBar = true;
 	public boolean showMenu = true;
 
