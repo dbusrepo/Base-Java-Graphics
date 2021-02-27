@@ -55,12 +55,6 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	// number of FPS values stored to get an average
 	private static final int NUM_AVG_FPS = 10;
 
-	// used to print fps/ups stats
-	private static final int STATS_FONT_SIZE = 10;
-	private static final String STATS_FONT_NAME = "SansSerif";
-	private static final Color STATS_TEXT_COLOR = Color.YELLOW;
-	private static final Color STATS_BG_COLOR = Color.RED;
-
 	/******************************************************************************************************************/
 
 	private final boolean appOver = false;
@@ -170,7 +164,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	}
 
 	private void initFont() {
-		this.statsFont = new Font(STATS_FONT_NAME, Font.BOLD, STATS_FONT_SIZE);
+		this.statsFont = new Font(Settings.statsFontName, Font.BOLD,
+				Settings.statsFontSize);
 	}
 
 	private Thread buildShutdownThread() {
@@ -354,11 +349,11 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			String stats_str = "FPS/UPS: " + df.format(averageFPS) + ", "
 					+ df.format(averageUPS);
 			Rectangle2D rect = fm.getStringBounds(stats_str, g);
-			g.setColor(STATS_BG_COLOR);
+			g.setColor(Settings.statsBgCol);
 			g.fillRect(x, y - fm.getAscent(), (int) rect.getWidth(),
 					(int) rect.getHeight());
 			g.setFont(statsFont);
-			g.setColor(STATS_TEXT_COLOR);
+			g.setColor(Settings.statsTextCol);
 			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
 					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 			g.drawString(stats_str, 2, fm.getHeight());

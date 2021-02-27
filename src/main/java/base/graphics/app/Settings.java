@@ -1,5 +1,6 @@
 package base.graphics.app;
 
+import java.awt.Color;
 import java.util.logging.Level;
 
 public class Settings {
@@ -23,6 +24,12 @@ public class Settings {
 	public boolean showFps = true;
 	public boolean showTitleBar = true;
 	public boolean showMenu = true;
+
+	// used to print fps/ups stats
+	public static int statsFontSize = 10;
+	public static String statsFontName = "SansSerif";
+	public static Color statsTextCol = Color.YELLOW;
+	public static Color statsBgCol = Color.RED;
 
 	public boolean useLog = false;
 	public boolean showLogWindow = true;
