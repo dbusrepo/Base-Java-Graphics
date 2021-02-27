@@ -370,7 +370,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			graphFrame.restoreScreen(); // make sure we restore the video mode
 										// before exiting
 			finishOff();
-			printFinalStatsApp();
+			printFinalStats();
 			Log.finishOff();
 			System.exit(0);
 		}
@@ -442,7 +442,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		}
 	}
 
-	private void printFinalStatsApp() {
+	@Override
+	public void printFinalStats() {
 		System.out.println();
 		System.out.println("FINAL STATS:");
 		System.out.println(
@@ -450,7 +451,6 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
 		System.out.println("Time Spent: " + totalTimeSpent + " secs");
-		printFinalStats();
 		System.out.flush();
 //		System.err.flush();
 	}
