@@ -24,12 +24,12 @@ public abstract class GraphAppSoftRendering extends GraphApp {
 	}
 
 	@Override
-	public void initApp() {
+	public void init() {
 		initFrameImage();
 	}
 
 	@Override
-	public void drawFrameApp(Graphics2D g) {
+	public void drawFrame(Graphics2D g) {
 		updateImage();
 		g.drawImage(frameImage, 0, 0, getCanvas().getWidth(), getCanvas().getHeight(), null);
 	}

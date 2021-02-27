@@ -101,26 +101,22 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 
 	public void start(Settings settings) throws Exception {
 		this.settings = settings;
-		init();
-		// for shutdown tasks, a shutdown may not only come from the program
-		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
-		startThread();
-	}
-
-	private void init() throws Exception {
 		initGraphics();
 		try {
 			initFpsStats();
 			initFont();
 			initInputManager();
 			initLog();
-			initApp();
+			init();
 		} catch (Exception ex) {
 			System.err.println(
 					"Error while initializing the application. Exiting...");
 			graphFrame.restoreScreen();
 			throw ex;
 		}
+		// for shutdown tasks, a shutdown may not only come from the program
+		Runtime.getRuntime().addShutdownHook(buildShutdownThread());
+		startThread();
 	}
 
 	private void initLog() throws Exception {
@@ -174,7 +170,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			public void run() {
 //				super.run();
 				isRunning = false;
-				finishOff();
+				finishOffApp();
 			}
 		};
 	}
@@ -220,7 +216,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		// Main loop
 		while (isRunning) {
 			// update
-			update(0); // TODO fix/change arg 0?
+			updateApp(0); // TODO fix/change arg 0?
 			render();
 			afterTime = System.nanoTime();
 			timeDiff = afterTime - beforeTime;
@@ -256,22 +252,22 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 				// update state but don’t render
 //				System.out.println("Skip renderFPS, run updateFPS"); // TODO if stats?
 				excess -= period;
-				update(0); // period as elapsedTime?
+				updateApp(0); // period as elapsedTime?
 				skips++;
 			}
 			framesSkipped += skips;
 			updateStats();
 		}
-		finishOff();
+		finishOffApp();
 	}
 
-	private void update(long elapsedTime) {
+	private void updateApp(long elapsedTime) {
 		if (settings.showAccelMemory) {
 			graphFrame.reportAccelMemory();
 		}
 		checkSystemInput(); // check input that can happen whether paused or not
 		if (canUpdateState()) {
-			updateApp(elapsedTime);
+			update(elapsedTime);
 		}
 	}
 
@@ -315,7 +311,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 					try {
 						// Render to graphics
 						g = (Graphics2D) strategy.getDrawGraphics();
-						drawFrameApp(g);
+						drawFrame(g);
 						showStats(g);
 					} finally {
 						// Dispose the graphics
@@ -339,8 +335,8 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		}
 	}
 
-	protected void showStats(Graphics2D g) {
-//		appLogic.showStats(); 	// TODO APP_HOOK ?
+	@Override
+	public void showStats(Graphics2D g) {
 		if (settings.showFps) {
 			int x = 2;
 			FontMetrics fm = g.getFontMetrics(statsFont);
@@ -367,14 +363,14 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	 * The call at the end of run() is not really necessary, but included for
 	 * safety. The flag stops the code being called twice.
 	 */
-	private void finishOff() {
+	private void finishOffApp() {
 		// System.out.println("finishOff");
 		if (!finishedOff) {
 			finishedOff = true;
 			graphFrame.restoreScreen(); // make sure we restore the video mode
 										// before exiting
-			finishOffApp();
-			printFinalStats();
+			finishOff();
+			printFinalStatsApp();
 			Log.finishOff();
 			System.exit(0);
 		}
@@ -446,7 +442,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		}
 	}
 
-	private void printFinalStats() {
+	private void printFinalStatsApp() {
 		System.out.println();
 		System.out.println("FINAL STATS:");
 		System.out.println(
@@ -454,7 +450,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		System.out.println("Average FPS: " + df.format(averageFPS));
 		System.out.println("Average UPS: " + df.format(averageUPS));
 		System.out.println("Time Spent: " + totalTimeSpent + " secs");
-		printFinalStatsApp();
+		printFinalStats();
 		System.out.flush();
 //		System.err.flush();
 	}
@@ -560,14 +556,14 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	}
 
 	@Override
-	public void drawFrameApp(Graphics2D g) {
+	public void drawFrame(Graphics2D g) {
 		// draw bg only here
 		g.setBackground(Color.BLACK);
 		g.clearRect(0, 0, getCanvas().getWidth(), getCanvas().getHeight());
 	}
 
 	@Override
-	public JMenuBar buildMenuApp() {
+	public JMenuBar buildMenu() {
 		JMenuBar menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
 		fileMenu.setMnemonic(KeyEvent.VK_F);

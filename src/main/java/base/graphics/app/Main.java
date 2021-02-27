@@ -14,19 +14,19 @@ public class Main extends GraphAppSoftRendering {
 	}
 
 	@Override
-	public void updateApp(long elapsedTime) {
+	public void update(long elapsedTime) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void finishOffApp() {
+	public void finishOff() {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void printFinalStatsApp() {
+	public void printFinalStats() {
 		// TODO Auto-generated method stub
 
 	}

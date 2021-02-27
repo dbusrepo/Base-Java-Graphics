@@ -5,16 +5,17 @@ import java.awt.Graphics2D;
 import javax.swing.JMenuBar;
 
 public interface IGraphApp {
-	void initApp();
+	void init();
 
-	JMenuBar buildMenuApp();
+	JMenuBar buildMenu();
 
-	void drawFrameApp(Graphics2D g);
+	void drawFrame(Graphics2D g);
 
-	void updateApp(long elapsedTime);
+	void update(long elapsedTime);
 
-	void finishOffApp();
+	void finishOff();
 
-	void printFinalStatsApp();
+	void printFinalStats();
 
+	void showStats(Graphics2D g);
 }

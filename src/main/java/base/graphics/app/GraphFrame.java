@@ -50,7 +50,7 @@ class GraphFrame extends JFrame implements WindowListener {
 		setUndecorated(!settings.showTitleBar);
 		if (settings.showMenu) {
 			setIgnoreRepaint(false); // to avoid menu vis problems
-			JMenuBar menuBar = graphApp.buildMenuApp();
+			JMenuBar menuBar = graphApp.buildMenu();
 			// to drag using the menu bar (only):
 			FrameDragListener frameDragListener = new FrameDragListener(this);
 			menuBar.addMouseListener(frameDragListener);
