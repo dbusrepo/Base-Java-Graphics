@@ -271,7 +271,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	}
 
 	private void update(long elapsedTime) {
-		if (settings.showFps) {
+		if (settings.showAccelMemory) {
 			graphFrame.reportAccelMemory();
 		}
 		checkSystemInput(); // check input that can happen whether paused or not

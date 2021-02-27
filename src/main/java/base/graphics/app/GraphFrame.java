@@ -24,10 +24,9 @@ class GraphFrame extends JFrame implements WindowListener {
 	private GraphApp graphApp;
 	private Settings settings;
 	private GraphicsDevice graphDevice;
-	// private BufferStrategy bufferStrategy;
-	private final DecimalFormat df = new DecimalFormat("0.##"); // 2 dp
-	private int accelMemory; // for reporting accl. memory usage
 	private Canvas canvas;
+	private int accelMemory; // for reporting accl. memory usage
+	private final DecimalFormat df = new DecimalFormat("0.##"); // 2 dp
 
 	public GraphFrame(GraphApp graphApp) {
 		super(graphApp.getGraphicsConfiguration());
@@ -35,6 +34,7 @@ class GraphFrame extends JFrame implements WindowListener {
 		this.graphApp = graphApp;
 		this.settings = graphApp.getSettings();
 		this.graphDevice = graphApp.getGraphDevice();
+		this.accelMemory = graphDevice.getAvailableAcceleratedMemory();
 		if (settings.showGraphCapabilities) {
 			reportCapabilities();
 		}
@@ -237,7 +237,6 @@ class GraphFrame extends JFrame implements WindowListener {
 	private void reportCapabilities() {
 		System.out.println();
 		System.out.println("SYS CAPABILITIES:");
-		accelMemory = graphDevice.getAvailableAcceleratedMemory();
 		System.out.println("Initial Acc. Mem.: "
 				+ df.format(((double) accelMemory) / (1024 * 1024)) + " MB");
 		GraphicsConfiguration graphConfig = graphApp.getGraphicsConfiguration();
@@ -328,19 +327,18 @@ class GraphFrame extends JFrame implements WindowListener {
 		return canvas;
 	}
 
-	void reportAccelMemory()
 	// report any change in the amount of accelerated memory
-	{
-		int mem = graphDevice.getAvailableAcceleratedMemory(); // in bytes
-		int memChange = mem - accelMemory;
+	void reportAccelMemory() {
+		int membytes = graphDevice.getAvailableAcceleratedMemory();
+		int memChange = membytes - accelMemory;
 		if (memChange != 0) {
 			System.out.println("Acc. Mem: "
 					+ df.format(((double) accelMemory) / (1024 * 1024))
 					+ " MB; Change: " + df.format(((double) memChange) / 1024)
 					+ " K");
 		}
-		accelMemory = mem;
-	} // end of reportAcceleMemory()
+		accelMemory = membytes;
+	}
 
 	void drawOnCanvas() {
 	}
