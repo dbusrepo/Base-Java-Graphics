@@ -556,6 +556,11 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	}
 
 	@Override
+	public void init() {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
 	public void drawFrame(Graphics2D g) {
 		// draw bg only here
 		g.setBackground(Color.BLACK);
