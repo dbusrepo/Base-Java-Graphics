@@ -7,20 +7,11 @@ import java.awt.image.DataBufferInt;
 
 public abstract class GraphAppSoftRendering extends GraphApp {
 
-	protected BufferedImage frameImage;
-	protected int[] pixels; // buffer as int[]
+	protected BufferedImage image;
+	protected int[] pixels; // img as int[] pixel array
+	protected Graphics2D g2Dimg = null; // g2d cached?
 
 	protected GraphAppSoftRendering() {
-	}
-
-	protected void initFrameImage() {
-		// TYPE_INT_ARGB, 4 bytes per pixel with alpha channel
-		// TYPE_INT_RGB, 4 bytes per pixel without alpha channel
-		// https://stackoverflow.com/questions/32414617/how-to-decide-which-bufferedimage-image-type-to-use
-		int width = getCanvas().getWidth();
-		int height = getCanvas().getHeight();
-		this.frameImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-		this.pixels = ((DataBufferInt) this.frameImage.getRaster().getDataBuffer()).getData();
 	}
 
 	@Override
@@ -28,28 +19,28 @@ public abstract class GraphAppSoftRendering extends GraphApp {
 		initFrameImage();
 	}
 
+	protected void initFrameImage() {
+		// TYPE_INT_ARGB, 4 bytes per pixel with alpha channel
+		// TYPE_INT_RGB, 4 bytes per pixel without alpha channel
+		// https://stackoverflow.com/questions/32414617/how-to-decide-which-bufferedimage-image-type-to-use
+		this.image = new BufferedImage(getCanvas().getWidth(),
+				getCanvas().getHeight(), BufferedImage.TYPE_INT_ARGB);
+		this.pixels = ((DataBufferInt) this.image.getRaster().getDataBuffer())
+				.getData();
+		this.g2Dimg = image.createGraphics(); // cache the graph2d obj
+	}
+
 	@Override
 	public void drawFrame(Graphics2D g) {
 		updateImage();
-		g.drawImage(frameImage, 0, 0, getCanvas().getWidth(), getCanvas().getHeight(), null);
+		g.drawImage(image, 0, 0, getCanvas().getWidth(),
+				getCanvas().getHeight(), null);
 	}
 
-	private void updateImage() {
-		Graphics2D g = null;
-		try {
-			g = frameImage.createGraphics();
-			appDrawImage(g);
-		} finally {
-			if (g != null) {
-				g.dispose();
-			}
-		}
-	}
-
-	protected void appDrawImage(Graphics2D g) {
-		g.setBackground(Color.BLACK);
-		g.clearRect(0, 0, frameImage.getWidth(), frameImage.getHeight());
-		// subclasses will use pixels[] ...
+	protected void updateImage() {
+		g2Dimg.setBackground(Color.BLACK);
+		g2Dimg.clearRect(0, 0, image.getWidth(), image.getHeight());
+		// subclasses can use pixels[] ...
 	}
 
 }

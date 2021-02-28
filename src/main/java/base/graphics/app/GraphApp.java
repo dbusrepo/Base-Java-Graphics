@@ -470,8 +470,6 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		isRunning = false;
 	}
 
-	/* ACC/MUT */
-
 	Settings getSettings() {
 		return settings;
 	}
@@ -490,6 +488,38 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 
 	GraphicsConfiguration getGraphicsConfiguration() {
 		return gc;
+	}
+
+	@Override
+	public void init() {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void drawFrame(Graphics2D g) {
+		// draw bg only here
+		g.setBackground(Color.BLACK);
+		g.clearRect(0, 0, getCanvas().getWidth(), getCanvas().getHeight());
+	}
+
+	@Override
+	public JMenuBar buildMenu() {
+		JMenuBar menuBar = new JMenuBar();
+		JMenu fileMenu = new JMenu("File");
+//		fileMenu.setMnemonic(KeyEvent.VK_F);
+		JMenuItem exitMenuItem = new JMenuItem("Exit");
+		exitMenuItem.addActionListener(e -> {
+			int result = JOptionPane.showConfirmDialog(GraphApp.this.graphFrame,
+					"Are you sure you want to exit the application?",
+					"Exit Application", JOptionPane.YES_NO_OPTION);
+			if (result == JOptionPane.YES_OPTION) {
+				GraphApp.this.isRunning = false;
+			}
+		});
+//		exitMenuItem.setToolTipText("Exit Application");
+		fileMenu.add(exitMenuItem);
+		menuBar.add(fileMenu);
+		return menuBar;
 	}
 
 	/* IMAGE IO */
@@ -553,38 +583,6 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			System.err
 					.println("Write Image error for " + imageFile + ":\n" + ex);
 		}
-	}
-
-	@Override
-	public void init() {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void drawFrame(Graphics2D g) {
-		// draw bg only here
-		g.setBackground(Color.BLACK);
-		g.clearRect(0, 0, getCanvas().getWidth(), getCanvas().getHeight());
-	}
-
-	@Override
-	public JMenuBar buildMenu() {
-		JMenuBar menuBar = new JMenuBar();
-		JMenu fileMenu = new JMenu("File");
-		fileMenu.setMnemonic(KeyEvent.VK_F);
-		JMenuItem exitMenuItem = new JMenuItem("Exit");
-		exitMenuItem.addActionListener(e -> {
-			int result = JOptionPane.showConfirmDialog(GraphApp.this.graphFrame,
-					"Are you sure you want to exit the application?",
-					"Exit Application", JOptionPane.YES_NO_OPTION);
-			if (result == JOptionPane.YES_OPTION) {
-				GraphApp.this.isRunning = false;
-			}
-		});
-//		exitMenuItem.setToolTipText("Exit Application");
-		fileMenu.add(exitMenuItem);
-		menuBar.add(fileMenu);
-		return menuBar;
 	}
 
 }
