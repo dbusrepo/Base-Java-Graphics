@@ -5,6 +5,8 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
+// Class used to do 'software' based rendering. The application plots pixels on 
+// a buffered image which is then copied to the canvas at each frame
 public abstract class GraphAppSoftRendering extends GraphApp {
 
 	protected BufferedImage image;

@@ -10,6 +10,8 @@ import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferStrategy;
@@ -53,12 +55,12 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	// i.e the state is updated but not rendered
 	private static final int MAX_FRAME_SKIPS = 5;
 	// number of FPS values stored to get an average
-	private static final int NUM_AVG_FPS = 10;
+	private static final int NUM_AVG_FPS = 5;// 10;
 
 	/******************************************************************************************************************/
 
-	private final boolean appOver = false;
-	private final DecimalFormat df = new DecimalFormat("0.##"); // 2 dp
+	private boolean appOver = false;
+	protected DecimalFormat df = new DecimalFormat("0.##"); // 2 dp
 
 	/******************************************************************************************************************/
 
@@ -85,12 +87,12 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 	private long frameCount = 0;
 	private double[] fpsStore;
 	private long statsCount = 0;
-	private double averageFPS = 0.0;
 	private long framesSkipped = 0L;
 	private long totalFramesSkipped = 0L;
 	// private DecimalFormat timedf = new DecimalFormat("0.####"); // 4 dp
 	private double[] upsStore;
-	private double averageUPS = 0.0;
+	protected double averageFPS = 0.0;
+	protected double averageUPS = 0.0;
 	private Font statsFont;
 	private InputAction exitAction;
 	private InputAction pauseAction;
@@ -342,8 +344,7 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 			FontMetrics fm = g.getFontMetrics(statsFont);
 			int y = fm.getHeight();
 			// g.drawString("Frame Count " + frameCount, 10, winBarHeight + 25);
-			String stats_str = "FPS/UPS: " + df.format(averageFPS) + ", "
-					+ df.format(averageUPS);
+			String stats_str = buildStatsStr();
 			Rectangle2D rect = fm.getStringBounds(stats_str, g);
 			g.setColor(Settings.statsBgCol);
 			g.fillRect(x, y - fm.getAscent(), (int) rect.getWidth(),
@@ -354,6 +355,11 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 			g.drawString(stats_str, 2, fm.getHeight());
 		}
+	}
+
+	protected String buildStatsStr() {
+		return "FPS/UPS: " + df.format(averageFPS) + ", "
+				+ df.format(averageUPS);
 	}
 
 	/*
@@ -502,20 +508,26 @@ public abstract class GraphApp implements Runnable, IGraphApp {
 		g.clearRect(0, 0, getCanvas().getWidth(), getCanvas().getHeight());
 	}
 
-	@Override
-	public JMenuBar buildMenu() {
-		JMenuBar menuBar = new JMenuBar();
-		JMenu fileMenu = new JMenu("File");
-//		fileMenu.setMnemonic(KeyEvent.VK_F);
-		JMenuItem exitMenuItem = new JMenuItem("Exit");
-		exitMenuItem.addActionListener(e -> {
+	protected ActionListener exitDialogActList = new ActionListener() {
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
 			int result = JOptionPane.showConfirmDialog(GraphApp.this.graphFrame,
 					"Are you sure you want to exit the application?",
 					"Exit Application", JOptionPane.YES_NO_OPTION);
 			if (result == JOptionPane.YES_OPTION) {
 				GraphApp.this.isRunning = false;
 			}
-		});
+		}
+	};
+
+	@Override
+	public JMenuBar buildMenu() {
+		JMenuBar menuBar = new JMenuBar();
+		JMenu fileMenu = new JMenu("File");
+//		fileMenu.setMnemonic(KeyEvent.VK_F);
+		JMenuItem exitMenuItem = new JMenuItem("Exit");
+		exitMenuItem.addActionListener(exitDialogActList);
 //		exitMenuItem.setToolTipText("Exit Application");
 		fileMenu.add(exitMenuItem);
 		menuBar.add(fileMenu);
