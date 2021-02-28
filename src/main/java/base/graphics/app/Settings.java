@@ -6,15 +6,15 @@ import java.util.logging.Level;
 public class Settings {
 
 	static final String TITLE = "Java Graphics";
-	static final int WIDTH = 1024;
-	static final int HEIGHT = 768;
+	static final int WIN_WIDTH = 1024;
+	static final int WIN_HEIGHT = 768;
 	static final int NUM_BUFFERS = 3;
 	static final int BIT_DEPTH = 32;
 	static final int TARGET_FPS = 120;
 
 	public String title = TITLE;
-	public int winWidth = WIDTH;
-	public int winHeight = HEIGHT;
+	public int winWidth = WIN_WIDTH;
+	public int winHeight = WIN_HEIGHT;
 	public int bitDepth = BIT_DEPTH;
 	public boolean fullScreen = false;
 	public int numBuffers = NUM_BUFFERS;
@@ -25,7 +25,6 @@ public class Settings {
 	public boolean showTitleBar = true;
 	public boolean showMenu = true;
 
-	// used to print fps/ups stats
 	public static int statsFontSize = 10;
 	public static String statsFontName = "SansSerif";
 	public static Color statsTextCol = Color.YELLOW;
